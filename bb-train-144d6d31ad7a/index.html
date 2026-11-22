@@ -819,6 +819,82 @@
     body.mode-session .tabbar,
     body.mode-full .tabbar { /* reserved */ }
     .tabbar button { font-size: 0.85rem; }
+
+    /* ---- Cloud sync ---- */
+    .sync-status {
+      margin: 10px 0 0;
+      font-size: 0.9rem;
+      font-weight: 650;
+      color: var(--muted);
+    }
+    .sync-status.ok { color: var(--ok); }
+    .sync-status.warn { color: #ffb020; }
+    .sync-code {
+      font-family: var(--mono);
+      font-size: 1.1rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-align: center;
+      white-space: pre-wrap;
+      word-break: keep-all;
+      overflow-wrap: normal;
+      background: var(--paper-2);
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin: 12px 0;
+      color: #fff;
+    }
+    .sync-code-input {
+      width: 100%;
+      min-height: var(--tap);
+      font-family: var(--mono);
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    body.coach-view [data-act="set-done"],
+    body.coach-view [data-act="set-wt"],
+    body.coach-view [data-act="set-reps"],
+    body.coach-view [data-act="set-rir"],
+    body.coach-view [data-act="ci-add"],
+    body.coach-view [data-act="ci-remove"],
+    body.coach-view [data-act="daily-bw"],
+    body.coach-view [data-act="daily-sleep"],
+    body.coach-view [data-act="jump-res"],
+    body.coach-view [data-act="jump-notes"],
+    body.coach-view [data-act="cond-time"],
+    body.coach-view [data-act="cond-notes"],
+    body.coach-view [data-act="shot-m"],
+    body.coach-view [data-act="shot-a"],
+    body.coach-view [data-act="test-f"],
+    body.coach-view [data-act="start-date"] {
+      pointer-events: none;
+    }
+    body.coach-view .coach-banner {
+      display: block;
+    }
+    .coach-banner {
+      display: none;
+      margin: 0 0 12px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      background: var(--phase-soft);
+      border: 1px solid var(--phase);
+      color: #fff;
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+    .toggle-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 14px;
+      min-height: var(--tap);
+    }
+    .toggle-row label { font-weight: 700; }
   </style>
 </head>
 <body>
@@ -1590,11 +1666,422 @@
   var state = loadState();
   var saveOk = true;
 
+  var SYNC_RPC = "https://cwdvbhdzituedykreqqu.supabase.co/rest/v1/rpc";
+  var SYNC_API_KEY = "sb_publishable_OJD5EiQLI9OQH7A-tFvXkQ_Fz9uMwua";
+  var SYNC_SETTINGS_KEY = "blake-offseason-tracker-sync-v1";
+  var SYNC_CODE_MIN = 32;
+  var SYNC_MAPS = ["sets", "shooting", "jumps", "cond", "daily", "tests"];
+
+  function defaultSyncSettings() {
+    return { code: "", readOnly: false, lastSynced: 0, lastError: "", lastStatus: "" };
+  }
+
+  function loadSyncSettings() {
+    var base = defaultSyncSettings();
+    try {
+      var raw = localStorage.getItem(SYNC_SETTINGS_KEY);
+      if (!raw) return base;
+      var data = JSON.parse(raw);
+      if (!data || typeof data !== "object") return base;
+      if (typeof data.code === "string") base.code = normalizeSyncCode(data.code);
+      base.readOnly = !!data.readOnly;
+      if (typeof data.lastSynced === "number" && isFinite(data.lastSynced)) base.lastSynced = data.lastSynced;
+      if (typeof data.lastError === "string") base.lastError = data.lastError;
+      if (typeof data.lastStatus === "string") base.lastStatus = data.lastStatus;
+      return base;
+    } catch (err) {
+      return base;
+    }
+  }
+
+  var syncSettings = loadSyncSettings();
+  var syncApplying = false;
+  var syncTimer = 0;
+  var syncBusy = false;
+  var syncQueued = false;
+  var syncSnap = null;
+
+  function persistSyncSettings() {
+    try {
+      localStorage.setItem(SYNC_SETTINGS_KEY, JSON.stringify({
+        code: syncSettings.code || "",
+        readOnly: !!syncSettings.readOnly,
+        lastSynced: syncSettings.lastSynced || 0,
+        lastError: syncSettings.lastError || "",
+        lastStatus: syncSettings.lastStatus || ""
+      }));
+    } catch (err) {}
+  }
+
+  function normalizeSyncCode(code) {
+    return String(code || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  }
+
+  function formatSyncCode(code, multiline) {
+    var s = normalizeSyncCode(code);
+    var dashed = s.replace(/(.{4})/g, "$1-").replace(/-$/, "");
+    if (!multiline) return dashed;
+    var groups = dashed.split("-");
+    var lines = [], i;
+    for (i = 0; i < groups.length; i += 4) lines.push(groups.slice(i, i + 4).join("-"));
+    return lines.join("\n");
+  }
+
+  function generateSyncCode() {
+    var alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    var bytes = new Uint8Array(32);
+    var out = "", i;
+    if (window.crypto && crypto.getRandomValues) crypto.getRandomValues(bytes);
+    else for (i = 0; i < 32; i++) bytes[i] = Math.floor(Math.random() * 256);
+    for (i = 0; i < 32; i++) out += alphabet[bytes[i] % alphabet.length];
+    return out;
+  }
+
+  function stripTs(obj) {
+    if (!obj || typeof obj !== "object") return obj;
+    var out = {}, k;
+    for (k in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, k) && k !== "ts") out[k] = obj[k];
+    }
+    return out;
+  }
+
+  function tsOf(obj) {
+    if (!obj || typeof obj !== "object") return 0;
+    var t = Number(obj.ts);
+    return isFinite(t) ? t : 0;
+  }
+
+  function entriesEqual(a, b) {
+    return JSON.stringify(stripTs(a)) === JSON.stringify(stripTs(b));
+  }
+
+  function stampMap(prev, next, now) {
+    prev = prev || {};
+    var k, cur, before;
+    for (k in next) {
+      if (!Object.prototype.hasOwnProperty.call(next, k)) continue;
+      cur = next[k];
+      if (!cur || typeof cur !== "object" || Array.isArray(cur)) continue;
+      before = prev[k];
+      if (!entriesEqual(cur, before)) cur.ts = now;
+    }
+  }
+
+  function stampCheckIns(prev, next, now) {
+    var i, cur, before, map = {}, id;
+    prev = prev || [];
+    for (i = 0; i < prev.length; i++) {
+      if (prev[i] && prev[i].id) map[prev[i].id] = prev[i];
+    }
+    for (i = 0; i < next.length; i++) {
+      cur = next[i];
+      if (!cur || typeof cur !== "object") continue;
+      id = cur.id || "";
+      before = id ? map[id] : null;
+      if (!entriesEqual(cur, before)) cur.ts = now;
+    }
+  }
+
+  function snapshotSyncable(s) {
+    return JSON.parse(JSON.stringify({
+      sets: s.sets || {},
+      shooting: s.shooting || {},
+      jumps: s.jumps || {},
+      cond: s.cond || {},
+      daily: s.daily || {},
+      tests: s.tests || {},
+      checkIns: s.checkIns || [],
+      startDate: s.startDate || "",
+      startDateTs: s.startDateTs || 0
+    }));
+  }
+
+  function stampChangedFields() {
+    var now = Date.now();
+    var prev = syncSnap || snapshotSyncable({ sets: {}, shooting: {}, jumps: {}, cond: {}, daily: {}, tests: {}, checkIns: [], startDate: "", startDateTs: 0 });
+    var i;
+    for (i = 0; i < SYNC_MAPS.length; i++) stampMap(prev[SYNC_MAPS[i]], state[SYNC_MAPS[i]], now);
+    if (!Array.isArray(state.checkIns)) state.checkIns = [];
+    stampCheckIns(prev.checkIns, state.checkIns, now);
+    if ((state.startDate || "") !== (prev.startDate || "")) state.startDateTs = now;
+    syncSnap = snapshotSyncable(state);
+  }
+
+  function stampAllNow() {
+    var now = Date.now();
+    var empty = { sets: {}, shooting: {}, jumps: {}, cond: {}, daily: {}, tests: {}, checkIns: [], startDate: "", startDateTs: 0 };
+    var i;
+    for (i = 0; i < SYNC_MAPS.length; i++) stampMap(empty[SYNC_MAPS[i]], state[SYNC_MAPS[i]], now);
+    if (!Array.isArray(state.checkIns)) state.checkIns = [];
+    stampCheckIns([], state.checkIns, now);
+    if (state.startDate) state.startDateTs = now;
+    syncSnap = snapshotSyncable(state);
+  }
+
+  function mergeMaps(local, remote) {
+    var out = {}, keys = {}, k, L, R;
+    local = local || {};
+    remote = remote || {};
+    for (k in local) if (Object.prototype.hasOwnProperty.call(local, k)) keys[k] = 1;
+    for (k in remote) if (Object.prototype.hasOwnProperty.call(remote, k)) keys[k] = 1;
+    for (k in keys) {
+      L = local[k];
+      R = remote[k];
+      if (!L) out[k] = R;
+      else if (!R) out[k] = L;
+      else if (tsOf(R) > tsOf(L)) out[k] = R;
+      else out[k] = L;
+    }
+    return out;
+  }
+
+  function mergeCheckIns(local, remote) {
+    var map = {}, i, row, id, existing;
+    local = local || [];
+    remote = remote || [];
+    function take(item) {
+      if (!item || typeof item !== "object") return;
+      id = item.id || (item.date + ":" + item.weight + ":" + (item.ts || ""));
+      existing = map[id];
+      if (!existing || tsOf(item) > tsOf(existing)) map[id] = item;
+    }
+    for (i = 0; i < local.length; i++) take(local[i]);
+    for (i = 0; i < remote.length; i++) take(remote[i]);
+    row = [];
+    for (id in map) if (Object.prototype.hasOwnProperty.call(map, id)) row.push(map[id]);
+    row.sort(function (a, b) {
+      return String(a.date || "").localeCompare(String(b.date || "")) || (tsOf(a) - tsOf(b));
+    });
+    return row;
+  }
+
+  function applyRemote(remote) {
+    if (!remote || typeof remote !== "object") return false;
+    var before = JSON.stringify(snapshotSyncable(state));
+    var i, key;
+    for (i = 0; i < SYNC_MAPS.length; i++) {
+      key = SYNC_MAPS[i];
+      state[key] = mergeMaps(state[key], remote[key]);
+    }
+    state.checkIns = mergeCheckIns(state.checkIns, remote.checkIns);
+    var remoteTs = Number(remote.startDateTs) || 0;
+    var localTs = Number(state.startDateTs) || 0;
+    if (remoteTs > localTs && typeof remote.startDate === "string") {
+      state.startDate = remote.startDate;
+      state.startDateTs = remoteTs;
+    }
+    syncSnap = snapshotSyncable(state);
+    return JSON.stringify(syncSnap) !== before;
+  }
+
+  function buildSyncPayload() {
+    var snap = snapshotSyncable(state);
+    snap.v = 1;
+    return snap;
+  }
+
+  function syncHeaders() {
+    return {
+      "Content-Type": "application/json",
+      "apikey": SYNC_API_KEY,
+      "Authorization": "Bearer " + SYNC_API_KEY
+    };
+  }
+
+  function syncRpc(name, body) {
+    return fetch(SYNC_RPC + "/" + name, {
+      method: "POST",
+      headers: syncHeaders(),
+      body: JSON.stringify(body)
+    }).then(function (res) {
+      if (!res.ok) throw new Error("sync " + name + " failed (" + res.status + ")");
+      return res.json();
+    });
+  }
+
+  function setSyncStatus(status, error) {
+    syncSettings.lastStatus = status || "";
+    syncSettings.lastError = error || "";
+    persistSyncSettings();
+    var text = formatLastSynced();
+    var els = document.querySelectorAll(".sync-status");
+    var i;
+    for (i = 0; i < els.length; i++) {
+      els[i].textContent = text;
+      els[i].classList.toggle("warn", !!syncSettings.lastError);
+      els[i].classList.toggle("ok", !syncSettings.lastError);
+    }
+  }
+
+  function formatLastSynced() {
+    if (syncSettings.lastError && !syncSettings.lastSynced) return "Sync issue — will retry when online";
+    if (!syncSettings.code) return "";
+    if (syncSettings.lastError && syncSettings.lastStatus === "offline") return "Offline — will sync when back";
+    if (!syncSettings.lastSynced) return "Sync is on — waiting for the first save";
+    var ago = Date.now() - syncSettings.lastSynced;
+    var text;
+    if (ago < 20000) text = "Last synced just now";
+    else if (ago < 60000) text = "Last synced less than a minute ago";
+    else if (ago < 3600000) text = "Last synced " + Math.round(ago / 60000) + " min ago";
+    else text = "Last synced " + Math.round(ago / 3600000) + " hr ago";
+    if (syncSettings.readOnly) text += " · Parent view";
+    if (syncSettings.lastError) text += " (retrying)";
+    return text;
+  }
+
+  function runSync(opts) {
+    opts = opts || {};
+    if (!syncSettings.code) return Promise.resolve();
+    if (syncBusy) { syncQueued = true; return Promise.resolve(); }
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      setSyncStatus("offline", "offline");
+      return Promise.resolve();
+    }
+    syncBusy = true;
+    var code = syncSettings.code;
+    return syncRpc("get_blob", { p_code: code }).then(function (remote) {
+      var payload = remote && remote.data;
+      var changed = false;
+      if (payload && typeof payload === "object") changed = applyRemote(payload);
+      if (changed) {
+        syncApplying = true;
+        persist();
+        syncApplying = false;
+        if (document.getElementById("app")) render();
+      }
+      if (syncSettings.readOnly) {
+        syncSettings.lastSynced = Date.now();
+        setSyncStatus("ok", "");
+        return;
+      }
+      return syncRpc("put_blob", { p_code: code, p_data: buildSyncPayload() }).then(function () {
+        syncSettings.lastSynced = Date.now();
+        setSyncStatus("ok", "");
+      });
+    }).catch(function (err) {
+      var msg = String(err && err.message ? err.message : err);
+      setSyncStatus(/failed to fetch|network|offline/i.test(msg) ? "offline" : "error", msg);
+    }).then(function () {
+      syncBusy = false;
+      if (syncQueued) {
+        syncQueued = false;
+        return runSync(opts);
+      }
+    });
+  }
+
+  function scheduleSync() {
+    if (!syncSettings.code || syncSettings.readOnly || syncApplying) return;
+    if (syncTimer) clearTimeout(syncTimer);
+    syncTimer = setTimeout(function () {
+      syncTimer = 0;
+      runSync({ reason: "save" });
+    }, 1500);
+  }
+
+  function enableSync() {
+    syncSettings.code = generateSyncCode();
+    syncSettings.readOnly = false;
+    syncSettings.lastSynced = 0;
+    stampAllNow();
+    persist();
+    persistSyncSettings();
+    render();
+    return runSync({ reason: "enable" }).then(function () { render(); });
+  }
+
+  function linkSync(code, readOnly) {
+    var normalized = normalizeSyncCode(code);
+    if (normalized.length < 24) return Promise.reject(new Error("That code looks too short. Check it and try again."));
+    syncSettings.code = normalized;
+    syncSettings.readOnly = !!readOnly;
+    syncSettings.lastSynced = 0;
+    persistSyncSettings();
+    return runSync({ reason: "link" }).then(function () {
+      render();
+    });
+  }
+
+  function disconnectSync() {
+    syncSettings = defaultSyncSettings();
+    persistSyncSettings();
+    render();
+  }
+
+  function copySyncCode() {
+    var text = formatSyncCode(syncSettings.code);
+    if (!text) return;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () {
+        setSyncStatus(syncSettings.lastStatus || "ok", syncSettings.lastError);
+        var el = document.getElementById("sync-copy-status");
+        if (el) el.textContent = "Copied. Text this to Dad.";
+      }).catch(function () { fallbackCopySync(text); });
+    } else fallbackCopySync(text);
+  }
+
+  function fallbackCopySync(text) {
+    var ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand("copy"); } catch (e) {}
+    document.body.removeChild(ta);
+    var el = document.getElementById("sync-copy-status");
+    if (el) el.textContent = "Copied. Text this to Dad.";
+  }
+
+  function renderSyncPage() {
+    var html = '<div class="screen">';
+    html += topbar("Sync", "Share progress between phones");
+    html += '<div class="screen-body">';
+    html += '<div class="card"><h2>Cloud sync</h2>';
+    if (syncSettings.code) {
+      html += '<p class="page-note">This phone is linked. Blake turns sync on once, then texts the code to Dad. The code stays on this phone, not in the page.</p>';
+      html += '<div class="sync-code" id="sync-code-value">' + escapeHtml(formatSyncCode(syncSettings.code, true)) + "</div>";
+      html += '<div class="row-actions"><button type="button" class="primary" data-act="sync-copy">Copy code</button>';
+      html += '<button type="button" data-act="sync-disconnect">Turn off on this phone</button></div>';
+      html += '<p class="saved" id="sync-copy-status"></p>';
+      html += '<p class="sync-status ' + (syncSettings.lastError ? "warn" : "ok") + '">' + escapeHtml(formatLastSynced()) + "</p>";
+      html += '<div class="toggle-row"><label for="sync-readonly">Parent view (read-only)</label>';
+      html += '<input id="sync-readonly" type="checkbox" data-act="sync-readonly"' + (syncSettings.readOnly ? " checked" : "") + "></div>";
+      html += '<p class="meta">Parent view lets Dad look at logs on his phone without pushing changes back to Blake.</p>';
+    } else {
+      html += '<p class="page-note">Turn this on on Blake’s phone first. It makes a private code you can text. On Dad’s phone, choose “Link to existing code” and paste it.</p>';
+      html += '<div class="row-actions"><button type="button" class="primary" data-act="sync-enable">Turn on sync</button></div>';
+      html += '<h2 style="margin-top:24px">Link to existing code</h2>';
+      html += '<p class="page-note">Use this on a second phone after Blake has already turned sync on.</p>';
+      html += '<label class="field">Sync code<input class="sync-code-input" type="text" id="sync-code-input" autocomplete="off" spellcheck="false" placeholder="XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX-XXXX"></label>';
+      html += '<div class="toggle-row"><label for="sync-readonly">Parent view (read-only)</label>';
+      html += '<input id="sync-readonly" type="checkbox" data-act="sync-readonly-draft"' + (syncSettings.readOnly ? " checked" : "") + "></div>";
+      html += '<div class="row-actions"><button type="button" class="primary" data-act="sync-link">Link this phone</button></div>';
+      html += '<p class="saved" id="sync-copy-status"></p>';
+    }
+    html += "</div></div></div>";
+    return html;
+  }
+
+  function initSyncListeners() {
+    window.addEventListener("focus", function () { if (syncSettings.code) runSync({ reason: "focus" }); });
+    document.addEventListener("visibilitychange", function () {
+      if (document.visibilityState === "visible" && syncSettings.code) runSync({ reason: "visible" });
+    });
+    window.addEventListener("online", function () { if (syncSettings.code) runSync({ reason: "online" }); });
+    setInterval(function () { if (syncSettings.code) runSync({ reason: "interval" }); }, 180000);
+    if (syncSettings.code) runSync({ reason: "boot" });
+  }
+
   function persist() {
     try {
+      if (!syncApplying) stampChangedFields();
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       saveOk = true;
       setSaveStatus("Saved on this device");
+      if (!syncApplying) scheduleSync();
       return true;
     } catch (err) {
       saveOk = false;
@@ -2375,7 +2862,7 @@
       if (typeof data.sessionWeek === "string") base.sessionWeek = data.sessionWeek;
       if (typeof data.sessionDay === "string") base.sessionDay = data.sessionDay;
       base.finished = !!data.finished;
-      var ok = { home: 1, session: 1, done: 1, plan: 1, checkin: 1, tests: 1, guide: 1, backup: 1 };
+      var ok = { home: 1, session: 1, done: 1, plan: 1, checkin: 1, tests: 1, guide: 1, backup: 1, sync: 1 };
       if (!ok[base.screen]) base.screen = "home";
       return base;
     } catch (err) {
@@ -2588,13 +3075,16 @@
     html += '<button type="button" class="start-btn" data-act="start-session"><span class="kicker">' + kicker + " today’s session</span>" + escapeHtml(plan.title);
     if (sub) html += '<span class="sub">' + escapeHtml(sub) + "</span>";
     html += "</button>";
+    var synced = formatLastSynced();
+    if (synced) html += '<button type="button" class="linkish sync-status ' + (syncSettings.lastError ? "warn" : "ok") + '" data-act="nav-sync">' + escapeHtml(synced) + "</button>";
     html += '<div class="tiles">';
     html += '<button type="button" class="tile" data-act="nav-plan">Plan<span>Week, day, and the session list</span></button>';
     html += '<button type="button" class="tile" data-act="nav-checkin">Check-in<span>Weight and height</span></button>';
     html += '<button type="button" class="tile" data-act="nav-tests">Tests<span>Jump, reach, and sprint</span></button>';
-    html += '<button type="button" class="tile" data-act="nav-backup">Backup<span>Export or import your log</span></button>';
+    html += '<button type="button" class="tile" data-act="nav-sync">Sync<span>Share progress with another phone</span></button>';
     html += "</div>";
     html += '<button type="button" class="linkish" data-act="nav-guide">Guide and notes</button>';
+    html += '<button type="button" class="linkish" data-act="nav-backup" style="margin-left:16px">Backup</button>';
     html += '<p class="safety-line"><strong>When to stop.</strong> If you feel pain or think you have an injury, stop and see your coach, trainer, or doctor.</p>';
     html += "</div></div>";
     return html;
@@ -2760,7 +3250,7 @@
     html += topbar("Backup", "Logs stay on this device");
     html += '<div class="screen-body">';
     html += '<div class="card"><h2>Export and import</h2>';
-    html += '<p class="page-note">Your lifts, shots, and check-ins are saved in this browser, not online. Export a JSON file to keep a copy, or import one to restore it.</p>';
+    html += '<p class="page-note">Your lifts, shots, and check-ins are saved in this browser. Export a JSON file to keep a copy, or import one to restore it. To share live progress with another phone, use Sync.</p>';
     html += '<div class="row-actions">';
     html += '<button type="button" class="primary" data-act="export-json">Export</button>';
     html += '<button type="button" data-act="copy-json">Copy JSON</button>';
@@ -2793,6 +3283,7 @@
     document.body.setAttribute("data-mode", mode);
     document.body.setAttribute("data-screen", ui.screen);
     document.body.classList.toggle("mode-session", ui.screen === "session" || ui.screen === "done");
+    document.body.classList.toggle("coach-view", !!(syncSettings.code && syncSettings.readOnly));
     if (ui.screen === "session") app.innerHTML = renderSessionPage();
     else if (ui.screen === "done") app.innerHTML = renderDone();
     else if (ui.screen === "plan") app.innerHTML = renderPlan();
@@ -2800,9 +3291,20 @@
     else if (ui.screen === "tests") app.innerHTML = renderTests();
     else if (ui.screen === "guide") app.innerHTML = renderGuidePage();
     else if (ui.screen === "backup") app.innerHTML = renderBackup();
+    else if (ui.screen === "sync") app.innerHTML = renderSyncPage();
     else app.innerHTML = renderHome();
+    if (syncSettings.code && syncSettings.readOnly && ui.screen !== "sync") {
+      var screenBody = app.querySelector(".screen-body");
+      if (screenBody) {
+        var ban = document.createElement("div");
+        ban.className = "coach-banner";
+        ban.style.display = "block";
+        ban.textContent = "Parent view — you can look, but this phone will not change Blake’s log.";
+        screenBody.insertBefore(ban, screenBody.firstChild);
+      }
+    }
     var tabs = document.querySelectorAll("#tabbar [data-nav]");
-    var tabFor = { home: "home", plan: "plan", checkin: "checkin", tests: "tests", session: "home", done: "home", guide: "home", backup: "home" };
+    var tabFor = { home: "home", plan: "plan", checkin: "checkin", tests: "tests", session: "home", done: "home", guide: "home", backup: "home", sync: "home" };
     var current = tabFor[ui.screen] || "home";
     var i;
     for (i = 0; i < tabs.length; i++) {
@@ -2821,6 +3323,28 @@
     if (act === "nav-tests" || act === "tests") { ev.preventDefault(); goTo("tests"); return; }
     if (act === "nav-guide") { ev.preventDefault(); goTo("guide"); return; }
     if (act === "nav-backup") { ev.preventDefault(); goTo("backup"); return; }
+    if (act === "nav-sync") { ev.preventDefault(); goTo("sync"); return; }
+    if (act === "sync-enable") { ev.preventDefault(); enableSync(); return; }
+    if (act === "sync-copy") { ev.preventDefault(); copySyncCode(); return; }
+    if (act === "sync-disconnect") { ev.preventDefault(); disconnectSync(); return; }
+    if (act === "sync-readonly") {
+      syncSettings.readOnly = !!t.checked;
+      persistSyncSettings();
+      render();
+      return;
+    }
+    if (act === "sync-link") {
+      ev.preventDefault();
+      var input = document.getElementById("sync-code-input");
+      var ro = document.getElementById("sync-readonly");
+      var status = document.getElementById("sync-copy-status");
+      linkSync(input ? input.value : "", ro && ro.checked).then(function () {
+        if (syncSettings.lastError && status) status.textContent = "Could not reach sync. Check the code or try again when you are online.";
+      }).catch(function (err) {
+        if (status) status.textContent = err.message || "Could not link. Check the code.";
+      });
+      return;
+    }
     if (act === "start-session") { ev.preventDefault(); startOrResumeSession(); return; }
     if (act === "session-next") { ev.preventDefault(); sessionNext(); return; }
     if (act === "session-back") { ev.preventDefault(); sessionBack(); return; }
@@ -3095,6 +3619,7 @@
     saveOk = false;
   }
   render();
+  initSyncListeners();
 })();
   </script>
 </body>
