@@ -283,7 +283,51 @@
       align-items: center;
     }
     .set-row.noload { grid-template-columns: 44px 1fr; }
+    .set-row.loaded { grid-template-columns: 44px 1fr; align-items: start; }
     .set-row.done label.set-btn { background: var(--phase); color: var(--phase-ink); border-color: var(--phase); }
+    .set-copy { padding-top: 8px; font-size: 0.8rem; color: var(--muted); }
+    .set-fields {
+      display: grid;
+      grid-template-columns: minmax(72px, 1.1fr) 64px 86px;
+      gap: 6px;
+      align-items: end;
+    }
+    .set-fields label.mini {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-size: 0.62rem;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .set-fields input, .set-fields select {
+      min-height: 40px;
+      padding: 6px 8px;
+      font-size: 16px;
+    }
+    .sug {
+      margin: 4px 0 0;
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: var(--phase);
+      letter-spacing: 0.02em;
+    }
+    .suggest-note {
+      margin: 8px 0 0;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: var(--phase-soft);
+      border: 1px solid color-mix(in srgb, var(--phase) 40%, var(--line));
+      color: var(--ink);
+      font-size: 0.8125rem;
+    }
+    .opt-block { margin-top: 16px; padding-top: 14px; border-top: 1px dashed var(--line); }
+    .opt-block h3 { margin: 0 0 4px; font-size: 0.95rem; }
+    .tag-optional { background: #94a3b8; color: #0f172a; }
+    .mode-pill.cal { background: #2ee6c5; color: #041411; }
+    .week-chip.cal:not(.current) .mark { color: #2ee6c5; }
     .ex, .card, .set-row, .day-card {
       scroll-margin-top: 150px;
       scroll-margin-bottom: 90px;
@@ -486,7 +530,7 @@
       <img class="brand-logo" src="data:image/png;base64,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" width="96" height="96" alt="BLD Daily">
       <div class="hero-text">
         <h1>Blake’s Off-Season</h1>
-        <p>Point guard · 16 weeks · 4 phases</p>
+        <p>Point guard · 16 weeks · 3 phases</p>
         <div class="hero-pills">
           <span id="phase-pill" class="phase-pill">Phase 1 · Foundation</span>
           <span id="week-mode-pill" class="mode-pill" hidden></span>
@@ -540,7 +584,7 @@
   var DAYS = [
     { id: "1", label: "Day 1 · Mon · Gym lower" },
     { id: "2", label: "Day 2 · Tue · Gym upper + shoot" },
-    { id: "3", label: "Day 3 · Wed · Speed" },
+    { id: "3", label: "Day 3 · Wed · Speed + optional lift" },
     { id: "4", label: "Day 4 · Thu · Home jumps" },
     { id: "5", label: "Day 5 · Fri · Home jumps (light)" },
     { id: "6", label: "Day 6 · Sat · Easy aerobic / shoot" },
@@ -551,41 +595,36 @@
 
   function phaseFor(week) {
     var n = Number(week);
-    if (n <= 4) return "foundation";
-    if (n <= 8) return "hypertrophy";
-    if (n <= 12) return "strength";
+    if (n <= 6) return "hypertrophy";
+    if (n <= 11) return "strength";
     return "power";
   }
 
   function phaseName(phase) {
-    if (phase === "foundation") return "Phase 1 · Foundation & technique (Weeks 1–4; Week 4 is a deload)";
-    if (phase === "hypertrophy") return "Phase 2 · Hypertrophy & strength (Weeks 5–8; Week 8 is a deload)";
-    if (phase === "strength") return "Phase 3 · Strength (Weeks 9–12; Week 12 is a deload)";
-    return "Phase 4 · Power & speed (Weeks 13–16; Week 16 is a taper and retest)";
+    if (phase === "hypertrophy") return "Phase 1 · Hypertrophy (Weeks 1–6; Weeks 1–2 are calibration, Week 6 is a deload)";
+    if (phase === "strength") return "Phase 2 · Strength (Weeks 7–11; Week 11 is a deload)";
+    return "Phase 3 · Power & speed (Weeks 12–16; Week 16 is a taper and retest)";
   }
 
   function phaseCopy(phase) {
-    if (phase === "foundation") {
-      return "Learn clean positions and quiet landings. Lifts are 3 × 8–10 with landing practice. Stay with bodyweight or a light load until the shape holds.";
-    }
     if (phase === "hypertrophy") {
-      return "Main lifts are 3–4 × 6–8 with 2–3+ minutes of rest. Accessories are 3 × 8–12. Add load only after two clean sessions.";
+      return "Full gym days (about 6–8 lifts, 60–75 minutes). Main lower work is 4 × 6–8; leave 1–2 reps in reserve on the last set. No failure on main lifts, and no 1RM tests.";
     }
     if (phase === "strength") {
-      return "Main lifts are 4 × 4–6 and a bit heavier, still not a max. Keep hypertrophy accessories at 3 × 8–12 so muscle gain stays in the plan.";
+      return "Main lifts move to 4 × 4–6, a bit heavier, still not a max. Accessories stay in a muscle-gain range. Leave about 2 reps in reserve.";
     }
-    return "Main lifts are 3 × 3–5, fast and not maxed. Power jumps are on the home days, not paired with gym lifts. Keep one upper day at 3 × 8.";
+    return "Main lifts are 3 × 3–5, fast and not maxed. Leave about 3 reps in reserve so bar speed stays high. Power jumps stay on the home days.";
   }
 
   function weekMode(week) {
     var n = Number(week);
     if (n === 16) return "taper";
-    if (n === 4 || n === 8 || n === 12) return "deload";
+    if (n === 6 || n === 11) return "deload";
+    if (n === 1 || n === 2) return "calibrate";
     return "normal";
   }
 
   function phaseShortName(ph) {
-    if (ph === "foundation") return "Foundation";
     if (ph === "hypertrophy") return "Hypertrophy";
     if (ph === "strength") return "Strength";
     return "Power";
@@ -628,6 +667,7 @@
     var name = phaseShortName(phaseFor(w));
     var mode = weekMode(w);
     var label = "Week " + w + " · " + name;
+    if (mode === "calibrate") label += " · Calibration";
     if (mode === "deload") label += " · Deload";
     if (mode === "taper") label += " · Taper / retest";
     var range = weekDateRange(w);
@@ -635,7 +675,8 @@
     return label;
   }
 
-  var LOAD_RULE = "Add 2.5–5 lb after two clean sessions in a row. No 1-rep-max days. Stop the set if bar speed or landing quality drops. If form changes, keep the same weight or go lighter.";
+  var LOAD_RULE = "Use double progression: keep the weight until you hit the top of the rep range at the target RIR on every set, then add load next time. No 1-rep-max days. Leave reps in reserve; never take a main lift to failure. Stop the set if bar speed or form drops.";
+  var SUGGEST_NOTE = "Weeks 1–2 set your working weights. Log the weight, reps, and RIR (Easy / Right / Hard) on each set. From week 3 on, you’ll see a suggested load from your best early sets (an Epley estimate — not a 1RM test). Hit the top of the rep range at the target RIR on every set and the next session adds +5 lb on lower barbell lifts or +2.5–5 lb on upper. Miss the bottom of the range and we hold or drop 5–10%. You can always type a different number. Deload weeks suggest 10–15% lighter, with fewer sets. Phase 1 last-set target is 1–2 reps in reserve.";
   var STOP_LOUD = "Stop if landings get loud.";
   var CALMACH_PROG = "Raise Calmach tension only when landings stay quiet and you fully reset every rep. Keep it light to moderate. If landings get loud or stiff, reduce tension or stop.";
   var HANG_NOTE = "Only if positions are clean; get coached if possible. If the bar path is messy or you cannot keep a tight finish, skip this lift.";
@@ -676,10 +717,9 @@
   }
 
   function phaseChipName(phase) {
-    if (phase === "foundation") return "Phase 1 · Foundation";
-    if (phase === "hypertrophy") return "Phase 2 · Hypertrophy";
-    if (phase === "strength") return "Phase 3 · Strength";
-    return "Phase 4 · Power";
+    if (phase === "hypertrophy") return "Phase 1 · Hypertrophy";
+    if (phase === "strength") return "Phase 2 · Strength";
+    return "Phase 3 · Power";
   }
 
   function weekIsTest(w) {
@@ -739,20 +779,32 @@
       cls = "week-chip phase-" + ph;
       if (current) cls += " current";
       if (mode === "deload") cls += " deload";
+      if (mode === "calibrate") cls += " cal";
       if (isTest) cls += " test";
       html += '<button type="button" class="' + cls + '" data-week="' + w + '" role="option" aria-selected="' + (current ? "true" : "false") + '">';
       html += '<span class="n">' + w + "</span>";
       if (mode === "deload" && isTest) html += '<span class="marks"><span class="mark">DL</span> <span class="mark test-mark">Test</span></span>';
       else if (mode === "deload") html += '<span class="mark">DL</span>';
       else if (mode === "taper") html += '<span class="mark">Test</span>';
+      else if (mode === "calibrate") html += '<span class="mark">Cal</span>';
       else if (isTest) html += '<span class="mark">Test</span>';
       html += "</button>";
     }
     el.innerHTML = html;
   }
 
-  function ex(id, name, sets, reps, rest, tempo, cue, progress) {
-    return { id: id, name: name, sets: sets, reps: reps, rest: rest, tempo: tempo, cue: cue, progress: progress };
+  function ex(id, name, sets, reps, rest, tempo, cue, progress, extra) {
+    var e = { id: id, name: name, sets: sets, reps: reps, rest: rest, tempo: tempo, cue: cue, progress: progress };
+    if (extra) {
+      if (extra.noLoad) e.noLoad = true;
+      if (extra.group) e.group = extra.group;
+      if (extra.bar) e.bar = extra.bar;
+      if (extra.targetRIR != null) e.targetRIR = extra.targetRIR;
+      if (extra.optional) e.optional = true;
+      if (extra.increment) e.increment = extra.increment;
+      if (extra.kind) e.kind = extra.kind;
+    }
+    return e;
   }
 
   function plyo(id, name, sets, reps, contactsPerSet, rest, cue) {
@@ -819,7 +871,7 @@
     var phase = phaseFor(week);
     var total = contactSum(planFor(phase, "1", week).exercises || []) + contactSum(planFor(phase, "4", week).exercises || []) + contactSum(planFor(phase, "5", week).exercises || []);
     var mode = weekMode(week);
-    var phaseTarget = phase === "foundation" ? "60–100" : (phase === "hypertrophy" ? "120–140" : "140–160");
+    var phaseTarget = phase === "hypertrophy" ? "110–130" : "140–160";
     var note;
     if (mode === "deload") note = "Deload week: about half the usual contacts and sprints.";
     else if (mode === "taper") note = "Taper and retest week: keep contacts low and crisp.";
@@ -827,195 +879,191 @@
     return { total: total, target: phaseTarget, mode: mode, note: note };
   }
 
+  function phaseRIR(phase) {
+    if (phase === "power") return 3;
+    return 2;
+  }
+
+  function lift(id, name, sets, reps, rest, tempo, cue, group, bar, rir) {
+    return ex(id, name, sets, reps, rest, tempo, cue, LOAD_RULE, {
+      group: group,
+      bar: bar,
+      targetRIR: rir,
+      increment: (bar === "barbell" || (group === "lower" && bar !== "db")) ? 5 : 2.5
+    });
+  }
+
+  function gymLower(phase, deload, taper) {
+    var rir = phaseRIR(phase);
+    var primer = plyo("primer", "Box jump or countermovement jump (primer)", 2, "3", 3, "Full reset, at least 60 seconds", "Two easy sets of 3 only — a gym primer, not a plyo session. No Calmach. Stick quiet landings. " + STOP_LOUD);
+    var trap, rdl, split, press, curl, calf, add;
+    if (taper) {
+      trap = lift("trapbar", "Trap-bar deadlift or back / front squat", 2, "3", "2–3+ minutes", "Fast but comfortable, not a max", "Crisp, easy bar speed. This is taper work, not a heavy day. Same lift as the rest of the block.", "lower", "barbell", rir);
+      rdl = lift("rdl", "Romanian deadlift", 2, "5", "2 minutes", "Controlled down, smooth stand", "Quality hinge only. Do not grind.", "lower", "barbell", rir);
+      split = lift("split", "Bulgarian split squat", 2, "5 each leg", "90 seconds after both legs", "Controlled, smooth", "Front foot planted, torso tall. Quality, not a max.", "lower", "db", rir);
+      calf = lift("calf", "Calf raise", 2, "10–12", "45–60 seconds", "Full range, 1-second squeeze", "Easy volume. Skip if the lower legs are fried.", "lower", "db", rir);
+      trap.progress = "Do not add load this week.";
+      rdl.progress = "Do not add load this week.";
+      split.progress = "Do not add load this week.";
+      calf.progress = "Do not add load this week.";
+      return [primer, trap, rdl, split, calf];
+    }
+    if (phase === "hypertrophy") {
+      trap = lift("trapbar", "Trap-bar deadlift or back / front squat", deload ? 3 : 4, "6–8", "2–3+ minutes", "3-0-1-0", "This is the main lower lift. Pick one (trap-bar, back squat, or front squat) and keep it for the block. Neutral spine, complete every stand. Leave 1–2 reps in reserve on the last set. No failure.", "lower", "barbell", rir);
+      rdl = lift("rdl", "Romanian deadlift", deload ? 2 : 3, "8–10", "2 minutes", "3-0-1-0", "Push the hips back, soft knees, spine long. Soften the knees only as much as you need. Stop short of failure.", "lower", "barbell", rir);
+      split = lift("split", "Bulgarian split squat", deload ? 2 : 3, "8–10 each leg", "90 seconds after both legs", "2-1-1-0", "Front heel down, torso tall, back knee drops straight down. Use a short, stable stance. Bodyweight or light dumbbells until both sides match.", "lower", "db", rir);
+      press = lift("legpress", "Leg press or hack squat", deload ? 2 : 3, "10–12", "90 seconds to 2 minutes", "2-0-1-0", "Full, controlled range. Do not lock out hard or let the low back peel off the pad.", "lower", "machine", rir);
+      curl = lift("legcurl", "Leg curl", deload ? 2 : 3, "10–12", "60–90 seconds", "2-0-1-0", "Control the lowering. Stop if the hips start to hitch.", "lower", "machine", rir);
+      calf = lift("calf", "Calf raise", deload ? 3 : 4, "12–15", "45–60 seconds", "Full range, 1-second squeeze", "Straight but not locked knees. Pause at the top.", "lower", "db", rir);
+      add = lift("adductor", "Copenhagen plank, adductor work, or core", deload ? 2 : 3, "8–12 each side or 20–30 seconds", "45–60 seconds", "Steady and controlled", "Quality over intensity. A Copenhagen hold, side-lying adductor lift, or a hard plank is fine. Stop if the hips sag or the groin pinches.", "lower", "db", rir);
+    } else if (phase === "strength") {
+      trap = lift("trapbar", "Trap-bar deadlift or back / front squat", deload ? 3 : 4, "4–6", "2–3+ minutes", "Controlled down, strong stand", "Heavier strength work, still not a max. Same lift as Phase 1. Leave about 2 reps in reserve. Stop if bar speed drops.", "lower", "barbell", rir);
+      rdl = lift("rdl", "Romanian deadlift", deload ? 2 : 3, "6–8", "2–3 minutes", "3-0-1-0", "Keep a long spine and a tight hinge. Leave reps in reserve.", "lower", "barbell", rir);
+      split = lift("split", "Bulgarian split squat", deload ? 2 : 3, "6–8 each leg", "90 seconds after both legs", "2-1-1-0", "Stable stance, torso tall. A little heavier than Phase 1, still not a grind.", "lower", "db", rir);
+      press = lift("legpress", "Leg press or hack squat", deload ? 2 : 3, "8–10", "90 seconds to 2 minutes", "2-0-1-0", "Controlled depth, no bouncing.", "lower", "machine", rir);
+      curl = lift("legcurl", "Leg curl", deload ? 2 : 3, "8–12", "60–90 seconds", "2-0-1-0", "Hypertrophy accessory. Control the lowering.", "lower", "machine", rir);
+      calf = lift("calf", "Calf raise", deload ? 2 : 3, "10–12", "45–60 seconds", "Full range, 1-second squeeze", "Pause at the top.", "lower", "db", rir);
+      add = lift("adductor", "Copenhagen plank, adductor work, or core", deload ? 2 : 3, "8–12 each side or 20–30 seconds", "45–60 seconds", "Steady and controlled", "Keep this as quality control work, not a max effort.", "lower", "db", rir);
+    } else {
+      trap = lift("trapbar", "Trap-bar deadlift or back / front squat", 3, "3–5", "2–3+ minutes", "Fast stand, not a grind and not a max", "Move the bar quickly with clean positions. Leave about 3 reps in reserve so bar speed stays high. Power jumps are on the home days.", "lower", "barbell", rir);
+      rdl = lift("rdl", "Romanian deadlift", 3, "5–6", "2 minutes", "Controlled down, crisp stand", "Crisp, not heavy. Stop if the back rounds.", "lower", "barbell", rir);
+      split = lift("split", "Bulgarian split squat", 3, "5–6 each leg", "90 seconds after both legs", "Controlled, smooth", "Quality single-leg work, not a grind.", "lower", "db", rir);
+      press = lift("legpress", "Leg press or hack squat", 3, "6–8", "90 seconds to 2 minutes", "Smooth, no bounce", "Keep these snappy. Stop short of failure.", "lower", "machine", rir);
+      curl = lift("legcurl", "Leg curl", 2, "8–10", "60–90 seconds", "2-0-1-0", "Light to moderate accessory work.", "lower", "machine", rir);
+      calf = lift("calf", "Calf raise", 3, "8–12", "45–60 seconds", "Full range, 1-second squeeze", "Quality range, not a shake-to-failure set.", "lower", "db", rir);
+      add = lift("adductor", "Copenhagen plank, adductor work, or core", 2, "8–12 each side or 20–30 seconds", "45–60 seconds", "Steady and controlled", "Keep it clean and brief.", "lower", "db", rir);
+    }
+    press.increment = 5;
+    curl.increment = 5;
+    return [primer, trap, rdl, split, press, curl, calf, add];
+  }
+
+  function gymUpper(phase, deload, taper) {
+    var rir = phaseRIR(phase);
+    var bench, pull, row, ohp, incline, laterals, bis, tris;
+    if (taper) {
+      bench = lift("press", "Dumbbell or barbell bench press", 2, "8", "2 minutes", "2-0-1-0, smooth", "Clean, easy reps. This is taper work, not a heavy day.", "upper", "barbell", rir);
+      pull = lift("row", "Pull-up or lat pulldown", 2, "8", "2 minutes", "2-1-2-0", "Strong squeeze, no shrug. Assisted or a pulldown is fine.", "upper", "barbell", rir);
+      row = lift("cablerow", "Seated cable or chest-supported row", 2, "10", "90 seconds", "2-1-2-0", "Easy, clean squeezes.", "upper", "db", rir);
+      bench.progress = "Do not add load this week.";
+      pull.progress = "Do not add load this week.";
+      row.progress = "Do not add load this week.";
+      return [bench, pull, row];
+    }
+    if (phase === "hypertrophy") {
+      bench = lift("press", "Dumbbell or barbell bench press", deload ? 3 : 4, "6–10", "2–3 minutes", "2-0-1-0", "Main upper press. Ribs down, feet planted. Leave 1–2 reps in reserve on the last set. Do not bounce the bar or take this to failure.", "upper", "barbell", rir);
+      pull = lift("row", "Pull-up or lat pulldown", deload ? 3 : 4, "8–10", "2–3 minutes", "2-1-2-0 (1-second squeeze)", "A hard pull. Use a band, an assisted machine, or a pulldown if you cannot do strict pull-ups yet. Quiet neck, no kipping.", "upper", "barbell", rir);
+      row = lift("cablerow", "Seated cable or chest-supported row", deload ? 2 : 3, "10–12", "90 seconds to 2 minutes", "2-1-2-0", "Chest supported if you can. Squeeze the shoulder blades and do not shrug.", "upper", "db", rir);
+      ohp = lift("ohp", "Dumbbell shoulder press", deload ? 2 : 3, "8–12", "90 seconds to 2 minutes", "2-0-1-0", "Ribs down. Stop if you lean back to finish the rep.", "upper", "db", rir);
+      incline = lift("incline", "Incline dumbbell press", deload ? 2 : 3, "10–12", "90 seconds", "2-0-1-0", "A moderate incline. Soft landing at the bottom, no bounce.", "upper", "db", rir);
+      laterals = lift("laterals", "Lateral raise", deload ? 2 : 3, "12–15", "45–60 seconds", "2-0-1-0, no swing", "Light dumbbells, slight elbow bend. Lead with the elbows, not the hands.", "upper", "db", rir);
+      bis = lift("biceps", "Biceps curl", deload ? 2 : 3, "10–12", "45–60 seconds", "2-0-1-0", "Strict, no sway. Pick one curl variation and keep it.", "upper", "db", rir);
+      tris = lift("triceps", "Triceps extension or pushdown", deload ? 2 : 3, "10–12", "45–60 seconds", "2-0-1-0", "Elbows stay put. Stop if the elbows flare and the shoulders take over.", "upper", "db", rir);
+    } else if (phase === "strength") {
+      bench = lift("press", "Dumbbell or barbell bench press", deload ? 3 : 4, "5–8", "2–3+ minutes", "2-0-1-0", "A little heavier, still not a max. Leave about 2 reps in reserve. Stop if bar speed drops.", "upper", "barbell", rir);
+      pull = lift("row", "Pull-up or lat pulldown", deload ? 3 : 4, "6–8", "2–3+ minutes", "2-1-2-0", "Strict pulls. Add a small weight only if a set of 8 is clean and easy.", "upper", "barbell", rir);
+      row = lift("cablerow", "Seated cable or chest-supported row", deload ? 2 : 3, "8–10", "90 seconds to 2 minutes", "2-1-2-0", "Hard squeeze, quiet neck.", "upper", "db", rir);
+      ohp = lift("ohp", "Dumbbell shoulder press", deload ? 2 : 3, "6–10", "90 seconds to 2 minutes", "2-0-1-0", "Ribs down, no back-bend to finish.", "upper", "db", rir);
+      incline = lift("incline", "Incline dumbbell press", deload ? 2 : 3, "8–10", "90 seconds", "2-0-1-0", "Controlled, no bounce.", "upper", "db", rir);
+      laterals = lift("laterals", "Lateral raise", deload ? 2 : 3, "12–15", "45–60 seconds", "2-0-1-0, no swing", "Keep these light and strict.", "upper", "db", rir);
+      bis = lift("biceps", "Biceps curl", deload ? 2 : 3, "8–12", "45–60 seconds", "2-0-1-0", "Strict curls.", "upper", "db", rir);
+      tris = lift("triceps", "Triceps extension or pushdown", deload ? 2 : 3, "8–12", "45–60 seconds", "2-0-1-0", "Elbows stay put.", "upper", "db", rir);
+    } else {
+      bench = lift("press", "Dumbbell or barbell bench press", 3, "5–8", "2–3 minutes", "Fast, smooth press, not a grind", "Crisp reps, about 3 reps in reserve. This is not a max upper day.", "upper", "barbell", rir);
+      pull = lift("row", "Pull-up or lat pulldown", 3, "5–8", "2–3 minutes", "Crisp pull, tight finish", "Quality, not a max set of pull-ups.", "upper", "barbell", rir);
+      row = lift("cablerow", "Seated cable or chest-supported row", 3, "8–10", "90 seconds", "2-1-2-0", "Crisp squeezes.", "upper", "db", rir);
+      ohp = lift("ohp", "Dumbbell shoulder press", 3, "6–8", "90 seconds", "Smooth and crisp", "Ribs down. Leave reps in reserve.", "upper", "db", rir);
+      incline = lift("incline", "Incline dumbbell press", 2, "8–10", "90 seconds", "2-0-1-0", "Moderate volume in the power block.", "upper", "db", rir);
+      laterals = lift("laterals", "Lateral raise", 2, "12–15", "45–60 seconds", "2-0-1-0, no swing", "Light and strict.", "upper", "db", rir);
+      bis = lift("biceps", "Biceps curl", 2, "8–12", "45–60 seconds", "2-0-1-0", "Strict curls.", "upper", "db", rir);
+      tris = lift("triceps", "Triceps extension or pushdown", 2, "8–12", "45–60 seconds", "2-0-1-0", "Elbows stay put.", "upper", "db", rir);
+    }
+    return [bench, pull, row, ohp, incline, laterals, bis, tris];
+  }
+
+  function optionalGymAddOn(phase, deload, taper) {
+    var rir = phaseRIR(phase);
+    var sets = taper ? 2 : (deload ? 2 : 3);
+    var face = lift("facepull", "Face pull or band pull-apart", sets, "12–15", "45–60 seconds", "Slow, squeeze at the back", "Light and strict. This is shoulder-health work, not a heavy row.", "upper", "db", rir);
+    var acc = lift("accpress", "Push-up or light dumbbell / machine press", sets, "10–12", "60–90 seconds", "2-0-1-0", "Much lighter than Tuesday’s bench. Stop a couple of reps early.", "upper", "db", rir);
+    var rear = lift("reardelt", "Chest-supported rear-delt raise or inverted row", sets, "12–15", "45–60 seconds", "Slow and tight", "Light load, pause at the squeeze.", "upper", "db", rir);
+    var arm = lift("armfin", "Biceps or triceps finisher", taper || deload ? 2 : 2, "10–12", "45–60 seconds", "2-0-1-0", "One easy arm movement. Skip if Tuesday already covered it well.", "upper", "db", rir);
+    var list = taper ? [face, acc] : [face, acc, rear, arm];
+    list.forEach(function (e) { e.optional = true; });
+    return list;
+  }
+
+  function homeHandles(phase, deload, taper) {
+    var h;
+    if (phase === "hypertrophy") h = ex("handles", "Ball handling rounds", deload ? 2 : 3, "two-ball + hesitation + speed changes", "45 seconds between rounds", "Game rhythm, eyes up", "Each round: two-ball pounds 30s, hesitation into a crossover each hand 30s, then two full-court speed changes.", "Add a chair only when the ball stays tight.");
+    else if (phase === "strength") h = ex("handles", "Ball handling rounds", deload ? 2 : 3, "two-ball + hesitation + speed changes", "45 seconds between rounds", "Game rhythm, eyes up", "Each round: two-ball pounds 30s, hesitation into a crossover each hand 30s, then two full-court speed changes.", "Add a chair only when the ball stays tight.");
+    else h = ex("handles", "Pressure handles", taper ? 2 : 3, "chair or cone attacks, both hands", "45–60 seconds between rounds", "Game pace", "Each round: attack, retreat, and change pace. Finish with both hands.", "Speed and control are the progress, not more drills.");
+    h.noLoad = true;
+    return h;
+  }
+
   function planFor(phase, day, week) {
     week = week || "1";
     var mode = weekMode(week);
     var deload = mode === "deload";
     var taper = mode === "taper";
-    var p1 = phase === "foundation";
-    var p2 = phase === "hypertrophy";
-    var p3 = phase === "strength";
-    var exercises, jumps, agility, conditioning, title, focus, recovery, handles, upper, skill, core, primer;
-
-    primer = plyo("primer", "Box jump or countermovement jump (primer)", 2, "3", 3, "Full reset, at least 60 seconds", "Two easy sets of 3 only — a gym primer, not a plyo session. No Calmach. Stick quiet landings. " + STOP_LOUD);
-
-    function homeHandles() {
-      var h;
-      if (p1) h = ex("handles", "Ball handling rounds", deload ? 1 : 2, "5 moves × 30 seconds", "30 seconds between rounds", "Smooth and low, not rushed", "Each round: pound right 30s, pound left 30s, crossover 30s, between the legs 30s, behind the back 30s. Eyes up.", "Do not add moves until the eyes stay up.");
-      else if (p2 || p3) h = ex("handles", "Ball handling rounds", deload ? 2 : 3, "two-ball + hesitation + speed changes", "45 seconds between rounds", "Game rhythm, eyes up", "Each round: two-ball pounds 30s, hesitation into a crossover each hand 30s, then two full-court speed changes.", "Add a chair only when the ball stays tight.");
-      else h = ex("handles", "Pressure handles", taper ? 2 : 3, "chair or cone attacks, both hands", "45–60 seconds between rounds", "Game pace", "Each round: attack, retreat, and change pace. Finish with both hands.", "Speed and control are the progress, not more drills.");
-      h.noLoad = true;
-      return h;
-    }
+    var p1 = phase === "hypertrophy";
+    var p2 = phase === "strength";
+    var exercises, jumps, agility, conditioning, title, focus, handles, core;
 
     if (day === "1") {
       title = "Gym lower body";
-      focus = "Heavy lower-body strength at the gym. Only a brief 2 × 3 jump primer — no Calmach and no mixed plyo volume. Split squats and lunges stay here with the main lift.";
-      if (p1) {
-        if (deload) {
-          exercises = [
-            ex("squat", "Goblet squat (or bodyweight squat)", 2, "8–10", "2 minutes", "3-0-1-0", "Sit between your heels, chest tall, knees track over toes.", LOAD_RULE),
-            ex("split", "Split squat", 2, "8 each leg", "90 seconds after both legs", "2-1-1-0", "Front heel stays down. Drop the back knee straight down.", LOAD_RULE),
-            ex("hinge", "Hip hinge or light Romanian deadlift", 2, "8–10", "90 seconds", "3-0-1-0", "Push the hips back, soft knees, spine long.", LOAD_RULE),
-            ex("lunge", "Walking lunge", 2, "8 each leg", "90 seconds", "Controlled, even steps", "Short steps, front knee over the midfoot, torso tall.", LOAD_RULE),
-            primer
-          ];
-        } else {
-          exercises = [
-            ex("squat", "Goblet squat (or bodyweight squat)", 3, "8–10", "2 minutes", "3-0-1-0 (3 seconds down, stand in 1 second)", "Sit between your heels, chest tall, knees track over toes.", "Stay with bodyweight until all 3 × 8–10 are clean, then a light goblet hold. " + LOAD_RULE),
-            ex("split", "Split squat", 3, "8 each leg", "90 seconds after both legs", "2-1-1-0", "Front heel stays down. Drop the back knee straight down and keep the torso quiet.", "Bodyweight first. Add light dumbbells only when the front heel never pops up. " + LOAD_RULE),
-            ex("hinge", "Hip hinge or light Romanian deadlift", 3, "8–10", "90 seconds", "3-0-1-0", "Push the hips back, soft knees, spine long. Squeeze the glutes to stand.", "Use a dowel or very light dumbbells until the back stays long. " + LOAD_RULE),
-            ex("bridge", "Glute bridge", 3, "10", "60 seconds", "1-second squeeze at the top", "Ribs down, squeeze the glutes, do not arch the low back.", "No load until the low back stays quiet."),
-            ex("lunge", "Walking lunge", 3, "8–10 each leg", "90 seconds", "Controlled, even steps", "Short steps, front knee tracks over the midfoot, torso tall. Bodyweight first.", "Add light dumbbells only when both sides look the same. " + LOAD_RULE),
-            primer
-          ];
-        }
-      } else if (p2) {
-        if (deload) {
-          exercises = [
-            ex("trapbar", "Trap-bar deadlift (or front squat)", 2, "6–8", "2–3+ minutes", "Controlled down, smooth stand", "Choose one main lift and keep it for the block. Neutral spine, full stand. Stop if bar speed drops.", LOAD_RULE),
-            ex("split", "Split squat", 2, "8–12 each leg", "90 seconds after both legs", "2-1-1-0", "Front heel down, torso quiet.", LOAD_RULE),
-            ex("hangpull", "Hang jump shrug or hang high pull", 2, "3–5", "2 minutes", "Fast, tight finish", HANG_NOTE, HANG_NOTE + " " + LOAD_RULE),
-            ex("lunge", "Walking lunge", 2, "8–12 each leg", "90 seconds", "Controlled, even steps", "Torso tall, even sides.", LOAD_RULE),
-            primer
-          ];
-        } else {
-          exercises = [
-            ex("trapbar", "Trap-bar deadlift (or front squat)", 4, "6–8", "2–3+ minutes", "Controlled down, smooth stand", "This is the main lower lift. Use a trap-bar deadlift, or a front squat if that is the better-coached option. Keep the same choice for the block. Neutral spine, complete every stand. Stop the set if bar speed drops.", LOAD_RULE),
-            ex("split", "Split squat", 3, "8–12 each leg", "90 seconds after both legs", "2-1-1-0", "Front heel down, torso quiet, back knee drops straight down.", "Accessory volume. " + LOAD_RULE),
-            ex("hangpull", "Hang jump shrug or hang high pull", 3, "3–5", "2 minutes", "Fast, tight finish from the hang", HANG_NOTE, HANG_NOTE + " Do not chase load. " + LOAD_RULE),
-            ex("lunge", "Walking lunge", 3, "8–12 each leg", "90 seconds", "Controlled, even steps", "Accessory single-leg work. Torso tall, even sides.", LOAD_RULE),
-            primer
-          ];
-        }
-      } else if (p3) {
-        if (deload) {
-          exercises = [
-            ex("trapbar", "Trap-bar deadlift (or front squat)", 2, "4–6", "2–3+ minutes", "Controlled down, strong stand", "Heavier strength work, deload volume. Stop if bar speed drops. Not a 1RM day.", LOAD_RULE),
-            ex("split", "Split squat", 2, "8–12 each leg", "90 seconds after both legs", "2-1-1-0", "Hypertrophy accessory. Front heel down, torso quiet.", LOAD_RULE),
-            ex("hangpull", "Hang jump shrug or hang high pull", 2, "3–5", "2 minutes", "Fast, tight finish from the hang", HANG_NOTE, HANG_NOTE + " " + LOAD_RULE),
-            ex("lunge", "Walking lunge", 2, "8–12 each leg", "90 seconds", "Controlled, even steps", "Hypertrophy accessory, deload volume.", LOAD_RULE),
-            primer
-          ];
-        } else {
-          exercises = [
-            ex("trapbar", "Trap-bar deadlift (or front squat)", 4, "4–6", "2–3+ minutes", "Controlled down, strong stand", "This is the heavier strength block. Use a trap-bar deadlift or front squat, the same choice as Phase 2. Add load only after two clean sessions. Stop the set if bar speed drops. Not a 1RM day.", LOAD_RULE),
-            ex("split", "Split squat", 3, "8–12 each leg", "90 seconds after both legs", "2-1-1-0", "Keep this as hypertrophy accessory work so muscle gain stays in the plan.", LOAD_RULE),
-            ex("hangpull", "Hang jump shrug or hang high pull", 3, "3–5", "2 minutes", "Fast, tight finish from the hang", HANG_NOTE, HANG_NOTE + " Do not chase load. " + LOAD_RULE),
-            ex("lunge", "Walking lunge", 3, "8–12 each leg", "90 seconds", "Controlled, even steps", "Keep single-leg hypertrophy work at 3 × 8–12 in this strength block.", LOAD_RULE),
-            primer
-          ];
-        }
-      } else if (taper) {
-        exercises = [
-          ex("trapbar", "Trap-bar deadlift (or front squat)", 2, "3", "2–3+ minutes", "Fast but comfortable, not a max", "Crisp, easy bar speed. This is taper work, not a heavy day.", "Do not add load this week."),
-          ex("split", "Split squat", 2, "6–8 each leg", "90 seconds after both legs", "Controlled, smooth", "Keep quality high. This is not a max lower day.", "Do not add load this week."),
-          ex("lunge", "Walking lunge", 2, "6–8 each leg", "90 seconds", "Controlled, smooth", "Quality single-leg work, not a grind.", "Do not add load this week."),
-          primer
-        ];
-      } else {
-        exercises = [
-          ex("trapbar", "Trap-bar deadlift (or front squat)", 3, "3–5", "2–3+ minutes", "Fast stand, not a grind and not a max", "Main lower lift, moved quickly with clean positions. Stop the set if bar speed drops. Power jumps are on the home days, not paired here after heavy sets.", LOAD_RULE),
-          ex("split", "Split squat", 3, "6–8 each leg", "90 seconds after both legs", "Controlled, smooth", "Keep quality high. This is not a max lower day.", LOAD_RULE),
-          ex("hangpull", "Hang jump shrug or hang high pull", 3, "3–5", "2 minutes", "Fast, tight finish from the hang", HANG_NOTE, HANG_NOTE + " " + LOAD_RULE),
-          ex("lunge", "Walking lunge", 3, "6–8 each leg", "90 seconds", "Controlled, smooth", "Quality single-leg work, not a grind.", LOAD_RULE),
-          primer
-        ];
-      }
-      return { title: title, focus: focus, kind: "train", location: "gym", exercises: exercises };
+      focus = "A full lower-body gym day, about 60–75 minutes: seven lifts plus a brief 2 × 3 jump primer. No Calmach and no mixed plyo volume. Leave reps in reserve; do not take the main lift to failure.";
+      return { title: title, focus: focus, kind: "train", location: "gym", exercises: gymLower(phase, deload, taper) };
     }
 
     if (day === "2") {
       title = "Gym upper body + shooting";
-      focus = "A loaded press plus a hard pull at the gym, then Apex shooting (Gym/Home court — use whichever court you have). Both the press and the pull stay in the week all 16 weeks.";
-      if (p1) {
-        upper = [
-          ex("press", "Loaded shoulder press or bench / floor press", deload ? 2 : 3, "8–10", "2 minutes", "2-0-1-0", "A loaded press stays in the program all 16 weeks. Ribs down, controlled lower. Use dumbbells, a bar, or a backpack-loaded push-up if that is what you have.", LOAD_RULE),
-          ex("row", "Hard pull: row or assisted chin-up / pull-up", deload ? 2 : 3, "8–10", "2 minutes", "2-1-2-0 (1-second squeeze)", "A hard pull stays in the program all 16 weeks. Squeeze the shoulder blades and do not shrug.", LOAD_RULE),
-          ex("deadbug", "Dead bug", deload ? 2 : 3, "8 each side", "45 seconds", "Slow, continuous breath", "Low back pressed down.", "No load. Slow down if the back peels off the floor")
-        ];
-        upper[2].noLoad = true;
-      } else if (p2) {
-        upper = [
-          ex("press", "Loaded shoulder press or bench / floor press", deload ? 2 : 4, "6–8", "2–3+ minutes", "2-0-1-0", "Main upper press. Ribs down. Stop if you lean back to finish the rep.", LOAD_RULE),
-          ex("row", "Hard pull: row or chin-up / pull-up", deload ? 2 : 4, "6–8", "2–3+ minutes", "2-1-2-0", "Hard pull. Quiet neck and torso. Leave one clean rep if bar speed drops.", LOAD_RULE),
-          ex("hollow", "Hollow hold or push-up accessory", 3, "8–12 or 25 seconds", "45–60 seconds", "Steady brace", "If you use a hold, keep the low back down. If you use push-ups, stay at 3 × 8–12 clean reps.", "Accessory work. Stop before form fades.")
-        ];
-        if (deload) upper[2].sets = 2;
-      } else if (p3) {
-        upper = [
-          ex("press", "Loaded shoulder press or bench / floor press", deload ? 2 : 3, "8–12", "90 seconds to 2 minutes", "2-0-1-0", "Hypertrophy accessory press — keep the 3 × 8–12 muscle-gain work in this strength block. Ribs down.", deload ? "Deload volume. " + LOAD_RULE : LOAD_RULE),
-          ex("row", "Hard pull: row or chin-up / pull-up", deload ? 2 : 3, "8–12", "90 seconds to 2 minutes", "2-1-2-0", "Hypertrophy accessory pull at 3 × 8–12. Quiet neck and torso.", deload ? "Deload volume. " + LOAD_RULE : LOAD_RULE),
-          ex("hollow", "Hollow hold or push-up accessory", deload ? 2 : 3, "8–12 or 25 seconds", "45–60 seconds", "Steady brace", "If you use a hold, keep the low back down. If you use push-ups, stay at 3 × 8–12 clean reps.", "Accessory work. Stop before form fades.")
-        ];
-      } else {
-        upper = [
-          ex("press", "Loaded shoulder press or bench / floor press", taper ? 2 : 3, "8", "2 minutes", "2-0-1-0, smooth", "This is the 3 × 8 upper day in Phase 4 (2 × 8 in the taper week). Keep the press clean, not heavy.", taper ? "Do not add load this week." : LOAD_RULE),
-          ex("row", "Hard pull: row or chin-up / pull-up", taper ? 2 : 3, "8", "2 minutes", "2-1-2-0", "Stay at 3 × 8 (2 × 8 in the taper). Strong squeeze, no shrug.", taper ? "Do not add load this week." : LOAD_RULE),
-          ex("hollow", "Hollow hold", taper ? 2 : 3, "30 seconds", "45 seconds", "Hard brace, quiet breath", "Low back down the whole time.", "Stop the set if the back arches.")
-        ];
-        upper[2].noLoad = true;
-      }
-      return { title: title, focus: focus, kind: "train", location: "gym", exercises: upper, shooting: { intro: shootingIntro(phase, "2"), spots: spots(phase, "2"), place: "court" } };
+      focus = "A full upper-body gym day, about 60–75 minutes (eight lifts), then Apex shooting (Gym/Home court — use whichever court you have). Leave reps in reserve on the main press and pull.";
+      return { title: title, focus: focus, kind: "train", location: "gym", exercises: gymUpper(phase, deload, taper), shooting: { intro: shootingIntro(phase, "2"), spots: spots(phase, "2"), place: "court" } };
     }
 
     if (day === "3") {
-      title = taper ? "Taper and retest" : "Speed";
+      title = taper ? "Taper and retest" : "Speed + optional lift";
       focus = taper
         ? "After the warm-up, retest standing and approach jump reach, bodyweight, and a timed 10–20 yard sprint. Then keep any remaining work easy. This is a test day, not a max-lift day."
-        : "The week’s speed work, on fresh legs — 48 hours after gym lower, and before the hard home jump day. Full rest between reps so each sprint is fast.";
-      agility = "Full rest (at least 90 seconds, or a walk back) so each sprint and cut is fast. This is speed, not conditioning.";
+        : "The week’s speed work first, on fresh legs — 48 hours after gym lower, and before the hard home jump day. If the sprints were crisp, an optional ~30 minute upper / full-body gym add-on can follow for extra muscle work.";
+      agility = "Full rest (at least 90 seconds, or a walk back) so each sprint and cut is fast. This is speed, not conditioning. Do the optional lift only after the sprints.";
       if (taper) {
         exercises = [
           sprintEx("sprint", "Build-up sprints", 3, "10–20 yards, about 80–90%", "At least 90 seconds", "Build-ups only if the retest is already done and the legs still feel crisp. Do not chase a new top speed after the test.")
-        ];
+        ].concat(optionalGymAddOn(phase, deload, taper));
         return { title: title, focus: focus, kind: "train", location: "court", exercises: exercises, agility: agility, retest: true };
       }
       if (p1) {
         exercises = [
-          sprintEx("sprint", "Short sprints", deload ? 5 : 9, "10–20 yards", "Walk back — do not rush the next rep", deload ? "Deload volume. Walk back every time. Stay tall." : "The week’s speed in one session: 6–10 × 10–20 yards (9 today). Build up to a fast, tall sprint. Walk back every time. Stop if form or speed drops.")
+          sprintEx("sprint", "Short sprints", deload ? 6 : 12, "10–20 yards", "Walk back — do not rush the next rep", deload ? "Deload volume. Walk back every time. Stay tall." : "The week’s speed in one session: 12 × 10–20 yards. Build up to a fast, tall sprint. Walk back every time. Stop if form or speed drops."),
+          sprintEx("cod", "Change-of-direction reps", deload ? 2 : 4, "1 short shuttle or 5-10-5", "At least 90 seconds", deload ? "Sharp cuts, then a full rest. Deload volume." : "4 quality COD reps. Sharp cuts, then a full rest of at least 90 seconds.")
         ];
-        agility = "Walk-back recovery on every sprint. This is teaching speed, not conditioning.";
+        agility = "Walk-back or at least 90 seconds so each sprint is fast. This is teaching speed, not conditioning.";
       } else if (p2) {
         exercises = [
-          sprintEx("sprint", "Short sprints", deload ? 8 : 14, "10–20 yards", "At least 90 seconds", deload ? "Deload volume. Rest at least 90 seconds." : "The week’s speed in one session (14 today). Rest at least 90 seconds. Stop if speed drops."),
+          sprintEx("sprint", "Short sprints", deload ? 7 : 14, "10–20 yards", "At least 90 seconds", deload ? "Deload volume. Rest at least 90 seconds." : "The week’s speed in one session (14 today). Rest at least 90 seconds. Stop if speed drops."),
           sprintEx("cod", "Change-of-direction reps", deload ? 2 : 4, "1 short shuttle or 5-10-5", "At least 90 seconds", deload ? "Sharp cuts, then a full rest. Deload volume." : "4 quality COD reps. Sharp cuts, then a full rest of at least 90 seconds.")
         ];
       } else {
         exercises = [
-          sprintEx("sprint", "Short sprints", deload ? 8 : 16, "10–20 yards", "At least 90 seconds", deload ? "Deload volume. Rest at least 90 seconds." : "The week’s speed in one session: up to 10–16 × 10–20 yards (16 today). Rest at least 90 seconds. Stop if speed drops."),
-          sprintEx("cod", "Change-of-direction reps", deload ? 3 : 6, "1 short shuttle or 5-10-5", "At least 90 seconds", deload ? "Sharp cuts, then a full rest. Deload volume." : "4–6 quality COD reps (6 today). Sharp cuts, then a full rest of at least 90 seconds.")
+          sprintEx("sprint", "Short sprints", 16, "10–20 yards", "At least 90 seconds", "The week’s speed in one session: up to 10–16 × 10–20 yards (16 today). Rest at least 90 seconds. Stop if speed drops."),
+          sprintEx("cod", "Change-of-direction reps", 6, "1 short shuttle or 5-10-5", "At least 90 seconds", "4–6 quality COD reps (6 today). Sharp cuts, then a full rest of at least 90 seconds.")
         ];
       }
+      exercises = exercises.concat(optionalGymAddOn(phase, deload, taper));
       return { title: title, focus: focus, kind: "train", location: "court", exercises: exercises, agility: agility };
     }
 
     if (day === "4") {
       title = "Home jumps + Calmach + handles";
       focus = "The harder home plyo day: mixed unresisted jumps and Calmach (about 20–30 minutes after a full warm-up), then ball handling. No gym lifts today.";
-      handles = homeHandles();
+      handles = homeHandles(phase, deload, taper);
       if (p1) {
         if (deload) {
           exercises = [
-            plyo("pogo", "Pogo hops", 2, "8", 8, "45–60 seconds", "Quiet, small contacts. " + STOP_LOUD),
-            plyo("broad", "Broad jump (landing practice)", 2, "5", 5, "60–90 seconds", "Stick a quiet landing. " + STOP_LOUD),
-            plyo("lateral", "Lateral bound", 1, "5 each side", 10, "60–90 seconds", "Bound, stick, reset. " + STOP_LOUD),
-            handles
-          ];
-          jumps = calmachBlock(2, 4, "Deload volume.");
-        } else {
-          exercises = [
-            plyo("pogo", "Pogo hops", 3, "8", 8, "45–60 seconds", "Quiet, small, elastic contacts. " + STOP_LOUD),
-            plyo("broad", "Broad jump (landing practice)", 3, "5", 5, "60–90 seconds", "Jump out, stick a quiet landing, walk back. " + STOP_LOUD),
-            plyo("lateral", "Lateral bound", 2, "5 each side", 10, "60–90 seconds", "Bound sideways, stick, reset. " + STOP_LOUD),
-            handles
-          ];
-          jumps = calmachBlock(3, 5, "Pair these with the unresisted jumps above.");
-        }
-      } else if (p2) {
-        if (deload) {
-          exercises = [
-            plyo("pogo", "Pogo hops", 2, "5", 5, "45–60 seconds", "Quiet and elastic. " + STOP_LOUD),
+            plyo("pogo", "Pogo hops", 1, "8", 8, "45–60 seconds", "Quiet, small contacts. " + STOP_LOUD),
             plyo("cmj", "Countermovement jump", 2, "5", 5, "90 seconds", "Crisp jump, quiet landing. " + STOP_LOUD),
             plyo("broad", "Broad jump", 2, "5", 5, "90 seconds", "Stick and reset. " + STOP_LOUD),
             plyo("lateral", "Lateral bound", 1, "5 each side", 10, "90 seconds", "Bound, stick, reset. " + STOP_LOUD),
@@ -1025,16 +1073,16 @@
           jumps = calmachBlock(2, 4, "Deload volume.");
         } else {
           exercises = [
-            plyo("pogo", "Pogo hops", 3, "5", 5, "45–60 seconds", "Quiet and elastic. " + STOP_LOUD),
+            plyo("pogo", "Pogo hops", 2, "8", 8, "45–60 seconds", "Quiet, small, elastic contacts. " + STOP_LOUD),
             plyo("cmj", "Countermovement jump", 3, "5", 5, "90 seconds", "Crisp jumps, full reset. " + STOP_LOUD),
             plyo("broad", "Broad jump", 3, "5", 5, "90 seconds", "Stick the landing, walk back. " + STOP_LOUD),
-            plyo("lateral", "Lateral bound", 3, "5 each side", 10, "90 seconds", "Bound, stick, reset. " + STOP_LOUD),
+            plyo("lateral", "Lateral bound", 2, "5 each side", 10, "90 seconds", "Bound sideways, stick, reset. " + STOP_LOUD),
             plyo("slhop", "Single-leg hops", 2, "4 each leg", 8, "60–90 seconds", "Short hops, hips level. " + STOP_LOUD),
             handles
           ];
           jumps = calmachBlock(3, 5, "Pair these with the unresisted jumps above.");
         }
-      } else if (p3) {
+      } else if (p2) {
         if (deload) {
           exercises = [
             plyo("pogo", "Pogo hops", 2, "5", 5, "45–60 seconds", "Quiet and elastic. " + STOP_LOUD),
@@ -1051,7 +1099,7 @@
             plyo("cmj", "Countermovement jump", 3, "5", 5, "90 seconds", "Crisp jumps, full reset. " + STOP_LOUD),
             plyo("broad", "Broad jump", 3, "5", 5, "90 seconds", "Stick the landing, walk back. " + STOP_LOUD),
             plyo("lateral", "Lateral bound", 3, "5 each side", 10, "90 seconds", "Bound, stick, reset. " + STOP_LOUD),
-            plyo("slhop", "Single-leg hops", 3, "4 each leg", 8, "60–90 seconds", "Short hops, hips level. " + STOP_LOUD),
+            plyo("slhop", "Single-leg hops", 2, "4 each leg", 8, "60–90 seconds", "Short hops, hips level. " + STOP_LOUD),
             handles
           ];
           jumps = calmachBlock(3, 5, "Pair these with the unresisted jumps above.");
@@ -1070,7 +1118,7 @@
           plyo("cmj", "Countermovement jump", 3, "5", 5, "90 seconds", "Crisp jumps, full reset. This is the power jump work for the week — not paired with gym lifts. " + STOP_LOUD),
           plyo("broad", "Broad jump", 3, "5", 5, "90 seconds", "Stick the landing, full reset. " + STOP_LOUD),
           plyo("lateral", "Lateral bound", 3, "5 each side", 10, "90 seconds", "Bound, stick, reset. " + STOP_LOUD),
-          plyo("slhop", "Single-leg hops", 2, "4 each leg", 8, "60–90 seconds", "Short hops, hips level. " + STOP_LOUD),
+          plyo("slhop", "Single-leg hops", 3, "4 each leg", 8, "60–90 seconds", "Short hops, hips level. " + STOP_LOUD),
           handles
         ];
         jumps = calmachBlock(3, 4, "Pair these with the unresisted jumps above.");
@@ -1084,23 +1132,25 @@
       if (p1) {
         if (deload) {
           exercises = [
-            plyo("pogo", "Pogo hops (landing practice)", 1, "8", 8, "45–60 seconds", "Quiet, small contacts. " + STOP_LOUD),
-            plyo("cmj", "Countermovement jump (landing practice)", 1, "5", 5, "60–90 seconds", "Jump, then stick a quiet athletic landing. " + STOP_LOUD)
+            plyo("pogo", "Pogo hops", 1, "8", 8, "45–60 seconds", "Quiet, small contacts. " + STOP_LOUD),
+            plyo("cmj", "Countermovement jump", 1, "5", 5, "90 seconds", "Crisp jump, quiet landing. " + STOP_LOUD),
+            plyo("broad", "Broad jump", 1, "5", 5, "90 seconds", "Stick and reset. " + STOP_LOUD)
           ];
           jumps = calmachBlock(2, 3, "Light day, deload volume.");
         } else {
           exercises = [
-            plyo("pogo", "Pogo hops (landing practice)", 2, "8", 8, "45–60 seconds", "Stiff-ish ankles, quiet feet, small elastic bounces. " + STOP_LOUD),
-            plyo("cmj", "Countermovement jump (landing practice)", 2, "5", 5, "60–90 seconds", "Dip, jump, and stick a quiet athletic landing. " + STOP_LOUD)
+            plyo("pogo", "Pogo hops", 2, "8", 8, "45–60 seconds", "Stiff-ish ankles, quiet feet, small elastic bounces. " + STOP_LOUD),
+            plyo("cmj", "Countermovement jump", 2, "5", 5, "90 seconds", "Crisp jumps, full reset. " + STOP_LOUD),
+            plyo("broad", "Broad jump", 2, "5", 5, "90 seconds", "Stick the landing, walk back. " + STOP_LOUD)
           ];
           jumps = calmachBlock(3, 4, "Lighter than yesterday. Keep tension light to moderate.");
         }
         core = [
-          ex("plank", "Front plank", deload ? 2 : 3, "25 seconds", "45 seconds", "Steady brace", "Ribs down, glutes on. Come down if the hips pike or sag.", "Add 5 seconds only if all sets stay clean."),
-          ex("side", "Side plank", deload ? 2 : 3, "20 seconds each side", "45 seconds", "Hips stacked and high", "Hips stacked and high.", "Add 5 seconds only if the hips stay high."),
+          ex("plank", "Front plank", deload ? 2 : 3, "30 seconds", "45 seconds", "Steady brace", "Ribs down, glutes on. Come down if the hips pike or sag.", "Add 5 seconds only if all sets stay clean."),
+          ex("side", "Side plank", deload ? 2 : 3, "20–25 seconds each side", "45 seconds", "Hips stacked and high", "Hips stacked and high.", "Add 5 seconds only if the hips stay high."),
           ex("bird", "Bird dog", deload ? 2 : 3, "8 each side", "45 seconds", "Slow and long", "Reach long, hips level, no sway in the low back.", "No load.")
         ];
-      } else if (p2 || p3) {
+      } else if (p2) {
         if (deload) {
           exercises = [
             plyo("pogo", "Pogo hops", 1, "5", 5, "45–60 seconds", "Quiet and elastic. " + STOP_LOUD),
@@ -1108,19 +1158,12 @@
             plyo("broad", "Broad jump", 1, "5", 5, "90 seconds", "Stick and reset. " + STOP_LOUD)
           ];
           jumps = calmachBlock(2, 3, "Light day, deload volume.");
-        } else if (p3) {
-          exercises = [
-            plyo("pogo", "Pogo hops", 2, "5", 5, "45–60 seconds", "Quiet and elastic. " + STOP_LOUD),
-            plyo("cmj", "Countermovement jump", 2, "5", 5, "90 seconds", "Crisp jumps, full reset. " + STOP_LOUD),
-            plyo("broad", "Broad jump", 2, "5", 5, "90 seconds", "Stick the landing, walk back. " + STOP_LOUD),
-            plyo("slhop", "Single-leg hops", 2, "4 each leg", 8, "60–90 seconds", "Short hops, hips level. " + STOP_LOUD)
-          ];
-          jumps = calmachBlock(3, 4, "Lighter than yesterday. Keep tension light to moderate.");
         } else {
           exercises = [
             plyo("pogo", "Pogo hops", 2, "5", 5, "45–60 seconds", "Quiet and elastic. " + STOP_LOUD),
             plyo("cmj", "Countermovement jump", 2, "5", 5, "90 seconds", "Crisp jumps, full reset. " + STOP_LOUD),
             plyo("broad", "Broad jump", 2, "5", 5, "90 seconds", "Stick the landing, walk back. " + STOP_LOUD),
+            plyo("lateral", "Lateral bound", 1, "5 each side", 10, "90 seconds", "Bound, stick, reset. " + STOP_LOUD),
             plyo("slhop", "Single-leg hops", 1, "4 each leg", 8, "60–90 seconds", "Short hops, hips level. " + STOP_LOUD)
           ];
           jumps = calmachBlock(3, 4, "Lighter than yesterday. Keep tension light to moderate.");
@@ -1330,16 +1373,214 @@
   function kDay(week, day) { return week + ":" + day; }
   function kShot(week, day, id) { return week + ":" + day + ":" + id; }
 
+  function emptySet() { return { done: false, weight: "", reps: "", rir: "" }; }
+
   function getSet(week, day, id, i) {
-    return state.sets[kSet(week, day, id, i)] || { done: false, weight: "" };
+    var rec = state.sets[kSet(week, day, id, i)];
+    if (!rec || typeof rec !== "object") return emptySet();
+    return {
+      done: !!rec.done,
+      weight: rec.weight || "",
+      reps: rec.reps != null ? rec.reps : "",
+      rir: rec.rir != null ? rec.rir : ""
+    };
   }
 
   function setSet(week, day, id, i, patch) {
     var key = kSet(week, day, id, i);
     var cur = getSet(week, day, id, i);
-    state.sets[key] = { done: patch.done !== undefined ? patch.done : cur.done, weight: patch.weight !== undefined ? patch.weight : cur.weight };
+    state.sets[key] = {
+      done: patch.done !== undefined ? patch.done : cur.done,
+      weight: patch.weight !== undefined ? patch.weight : cur.weight,
+      reps: patch.reps !== undefined ? patch.reps : cur.reps,
+      rir: patch.rir !== undefined ? patch.rir : cur.rir
+    };
     persist();
   }
+
+  function parseRIR(v) {
+    if (v === undefined || v === null || String(v).trim() === "") return null;
+    var s = String(v).trim().toLowerCase();
+    if (s === "easy") return 3;
+    if (s === "right") return 2;
+    if (s === "hard") return 1;
+    var n = Number(s);
+    return (isFinite(n) && n >= 0) ? n : null;
+  }
+
+  function parseRepRange(reps) {
+    var s = String(reps || "");
+    var m = s.match(/(\d+)\s*[–-]\s*(\d+)/);
+    if (m) return { lo: Number(m[1]), hi: Number(m[2]) };
+    var n = s.match(/(\d+)/);
+    if (n) return { lo: Number(n[1]), hi: Number(n[1]) };
+    return { lo: 6, hi: 8 };
+  }
+
+  function incrementFor(exer) {
+    if (!exer) return 5;
+    if (exer.increment) return exer.increment;
+    if (exer.bar === "barbell") return 5;
+    if (exer.group === "lower") return 5;
+    return 2.5;
+  }
+
+  function epley1RM(weight, reps, rir) {
+    var r = Number(reps);
+    if (!isFinite(r) || r < 1 || !isFinite(weight) || weight <= 0) return null;
+    var extra = (rir == null) ? 0 : rir;
+    var eff = r + extra;
+    if (eff > 12) eff = 12;
+    return weight * (1 + eff / 30);
+  }
+
+  function collectedSets(exId, weekOk) {
+    var out = [], key, parts, week, rec, w, r;
+    if (!state.sets) return out;
+    for (key in state.sets) {
+      if (!Object.prototype.hasOwnProperty.call(state.sets, key)) continue;
+      parts = key.split(":");
+      if (parts.length < 4) continue;
+      if (parts[2] !== exId) continue;
+      week = Number(parts[0]);
+      if (weekOk && !weekOk(week, parts[1], Number(parts[3]))) continue;
+      rec = state.sets[key] || {};
+      w = parseNum(rec.weight);
+      r = parseNum(rec.reps);
+      if (w == null || w <= 0) continue;
+      if (r == null && !rec.done) continue;
+      out.push({
+        week: week,
+        day: parts[1],
+        i: Number(parts[3]),
+        weight: w,
+        reps: r,
+        rir: parseRIR(rec.rir),
+        done: !!rec.done
+      });
+    }
+    return out;
+  }
+
+  function bestE1RM(exId) {
+    var sets = collectedSets(exId, function (w) { return w === 1 || w === 2; });
+    var best = null, i, e;
+    for (i = 0; i < sets.length; i++) {
+      if (sets[i].reps == null) continue;
+      e = epley1RM(sets[i].weight, sets[i].reps, sets[i].rir);
+      if (e && (best == null || e > best)) best = e;
+    }
+    return best;
+  }
+
+  function sessionSets(exId, week) {
+    return collectedSets(exId, function (w) { return w === Number(week); });
+  }
+
+  function lastPriorWorkingWeek(exId, beforeWeek) {
+    var seen = {}, sets, i, w, mode, latest = null;
+    sets = collectedSets(exId, function (week) { return week < Number(beforeWeek); });
+    for (i = 0; i < sets.length; i++) {
+      w = sets[i].week;
+      mode = weekMode(String(w));
+      if (mode === "deload" || mode === "taper") continue;
+      if (latest == null || w > latest) latest = w;
+    }
+    return latest;
+  }
+
+  function workingWeightFromSession(exId, week) {
+    var sets = sessionSets(exId, week);
+    var weights = [], i;
+    for (i = 0; i < sets.length; i++) if (sets[i].weight > 0) weights.push(sets[i].weight);
+    if (!weights.length) return null;
+    weights.sort(function (a, b) { return a - b; });
+    return weights[Math.floor(weights.length / 2)];
+  }
+
+  function findExerciseInWeek(exId, week) {
+    var phase = phaseFor(String(week));
+    var days = ["1", "2", "3"], d, plan, list, i;
+    for (d = 0; d < days.length; d++) {
+      plan = planFor(phase, days[d], String(week));
+      list = plan.exercises || [];
+      for (i = 0; i < list.length; i++) if (list[i].id === exId) return list[i];
+    }
+    return null;
+  }
+
+  function sessionQuality(exId, week, range, targetRIR) {
+    var sets = sessionSets(exId, week).filter(function (s) { return s.reps != null; });
+    var hitTop = false, missed = 0, i, s;
+    if (!sets.length) return { usable: false, hitTop: false, missed: 0, total: 0 };
+    hitTop = sets.every(function (row) {
+      if (row.reps < range.hi) return false;
+      if (row.rir != null && row.rir < targetRIR) return false;
+      return true;
+    });
+    for (i = 0; i < sets.length; i++) {
+      s = sets[i];
+      if (s.reps < range.lo) missed++;
+    }
+    return { usable: true, hitTop: hitTop, missed: missed, total: sets.length };
+  }
+
+  function roundTo(n, step) {
+    if (!isFinite(n) || n <= 0) return null;
+    var r = Math.round(n / step) * step;
+    if (r < step) r = step;
+    return Math.round(r * 10) / 10;
+  }
+
+  function formatLb(n) {
+    if (n == null || !isFinite(n)) return "";
+    if (Math.abs(n - Math.round(n)) < 0.05) return String(Math.round(n));
+    return String(Math.round(n * 10) / 10);
+  }
+
+  function suggestedFor(exer, week) {
+    if (!exer || exer.noLoad) return null;
+    var n = Number(week);
+    if (!n || n <= 2) return null;
+    var range = parseRepRange(exer.reps);
+    var targetRIR = exer.targetRIR != null ? exer.targetRIR : 2;
+    var step = incrementFor(exer);
+    var mode = weekMode(String(week));
+    var e1 = bestE1RM(exer.id);
+    var prevW = lastPriorWorkingWeek(exer.id, n);
+    var prevPhase = prevW ? phaseFor(String(prevW)) : null;
+    var curPhase = phaseFor(String(week));
+    var lastWt = prevW ? workingWeightFromSession(exer.id, prevW) : null;
+    var usePercent = e1 && (!prevW || prevW <= 2 || prevPhase !== curPhase);
+    var suggested = null;
+    var bump = (exer.group === "lower" || exer.bar === "barbell") ? 5 : step;
+
+    if (usePercent) {
+      suggested = e1 / (1 + (range.hi + targetRIR) / 30);
+    } else if (prevW && lastWt) {
+      var prevEx = findExerciseInWeek(exer.id, prevW) || exer;
+      var prevRange = parseRepRange(prevEx.reps);
+      var prevRIR = prevEx.targetRIR != null ? prevEx.targetRIR : 2;
+      var q = sessionQuality(exer.id, prevW, prevRange, prevRIR);
+      if (q.usable && q.hitTop) suggested = lastWt + bump;
+      else if (q.usable && (q.missed >= 2 || (q.missed >= 1 && q.missed === q.total))) suggested = lastWt * 0.90;
+      else suggested = lastWt;
+    } else if (e1) {
+      suggested = e1 / (1 + (range.hi + targetRIR) / 30);
+    } else {
+      return null;
+    }
+
+    if (mode === "deload" || mode === "taper") {
+      var base = lastWt;
+      if (base == null && e1) base = e1 / (1 + (range.hi + targetRIR) / 30);
+      if (base == null) return null;
+      return roundTo(base * 0.875, step);
+    }
+    if (suggested == null) return null;
+    return roundTo(suggested, step);
+  }
+
 
   function dayDaily() {
     var key = kDay(state.week, state.day);
@@ -1485,16 +1726,43 @@
     return html + "</ol>";
   }
 
+  function rirSelect(exer, i, cur) {
+    var opts = [
+      ["", "RIR"],
+      ["easy", "Easy"],
+      ["right", "Right"],
+      ["hard", "Hard"],
+      ["0", "0"],
+      ["1", "1"],
+      ["2", "2"],
+      ["3", "3"],
+      ["4", "4"]
+    ];
+    var html = '<select data-act="set-rir" data-ex="' + escapeHtml(exer.id) + '" data-i="' + i + '" aria-label="RIR, set ' + (i + 1) + '">';
+    var j, sel;
+    for (j = 0; j < opts.length; j++) {
+      sel = String(cur || "") === opts[j][0] ? " selected" : "";
+      html += '<option value="' + opts[j][0] + '"' + sel + ">" + opts[j][1] + "</option>";
+    }
+    html += "</select>";
+    return html;
+  }
+
   function renderExercise(exer) {
     var cat = categoryFor(exer);
     var html = '<div class="ex" data-ex="' + escapeHtml(exer.id) + '" data-cat="' + cat + '">';
-    html += '<div class="ex-head"><h3>' + escapeHtml(exer.name) + "</h3>" + categoryTag(cat) + "</div>";
+    html += '<div class="ex-head"><h3>' + escapeHtml(exer.name) + "</h3>";
+    if (exer.optional) html += '<span class="tag tag-optional">Optional</span>';
+    html += categoryTag(cat) + "</div>";
     html += '<p class="meta"><strong>' + escapeHtml(String(exer.sets)) + " × " + escapeHtml(exer.reps) + "</strong>";
     html += " · Rest " + escapeHtml(exer.rest);
     if (exer.tempo) html += " · " + (/\d-\d-\d/.test(exer.tempo) ? "Tempo " : "") + escapeHtml(exer.tempo);
+    if (exer.targetRIR != null) html += " · Target RIR " + exer.targetRIR;
     html += "</p>";
     html += '<p class="cue">' + escapeHtml(exer.cue) + "</p>";
     if (exer.progress) html += '<p class="progress-rule"><strong>Progress:</strong> ' + escapeHtml(exer.progress) + "</p>";
+    var sug = (!exer.noLoad) ? suggestedFor(exer, state.week) : null;
+    var sugTxt = (sug != null) ? formatLb(sug) : "";
     html += '<div class="sets">';
     var i, rec, checked, doneClass, wt;
     for (i = 0; i < exer.sets; i++) {
@@ -1502,11 +1770,20 @@
       checked = rec.done ? " checked" : "";
       doneClass = rec.done ? " done" : "";
       wt = rec.weight || "";
-      html += '<div class="set-row' + doneClass + (exer.noLoad ? " noload" : "") + '">';
+      html += '<div class="set-row' + doneClass + (exer.noLoad ? " noload" : " loaded") + '">';
       html += '<label class="set-btn"><input type="checkbox" data-act="set-done" data-ex="' + escapeHtml(exer.id) + '" data-i="' + i + '"' + checked + '> ' + (i + 1) + "</label>";
-      html += "<div>Set " + (i + 1) + " of " + exer.sets + "</div>";
-      if (!exer.noLoad) {
-        html += '<div class="wt"><input type="number" inputmode="decimal" step="0.5" min="0" placeholder="" aria-label="Weight used, set ' + (i + 1) + '" data-act="set-wt" data-ex="' + escapeHtml(exer.id) + '" data-i="' + i + '" value="' + escapeHtml(wt) + '"><span>lb</span></div>';
+      if (exer.noLoad) {
+        html += "<div>Set " + (i + 1) + " of " + exer.sets + "</div>";
+      } else {
+        html += "<div>";
+        html += '<div class="set-copy">Set ' + (i + 1) + " of " + exer.sets + "</div>";
+        html += '<div class="set-fields">';
+        html += '<label class="mini">Weight (lb)<input type="number" inputmode="decimal" step="0.5" min="0" placeholder="' + escapeHtml(sugTxt) + '" aria-label="Weight used, set ' + (i + 1) + '" data-act="set-wt" data-ex="' + escapeHtml(exer.id) + '" data-i="' + i + '" value="' + escapeHtml(wt) + '"></label>';
+        html += '<label class="mini">Reps<input type="number" inputmode="numeric" min="0" step="1" placeholder="" aria-label="Reps completed, set ' + (i + 1) + '" data-act="set-reps" data-ex="' + escapeHtml(exer.id) + '" data-i="' + i + '" value="' + escapeHtml(rec.reps || "") + '"></label>';
+        html += '<label class="mini">RIR' + rirSelect(exer, i, rec.rir) + "</label>";
+        html += "</div>";
+        if (sugTxt) html += '<div class="sug">Suggested: ' + sugTxt + " lb</div>";
+        html += "</div>";
       }
       html += "</div>";
     }
@@ -1579,10 +1856,13 @@
     html += locationTag(plan.location || "rest");
     if (mode === "deload") html += '<span class="mode-pill">Deload week</span>';
     else if (mode === "taper") html += '<span class="mode-pill test">Taper · retest</span>';
+    else if (mode === "calibrate") html += '<span class="mode-pill cal">Calibration</span>';
     else if (weekIsTest(state.week)) html += '<span class="mode-pill test">Test week</span>';
     html += "</div>";
     var dayLabel = dayDateLabel(state.week, state.day);
     html += '<p class="meta">' + escapeHtml(plan.focus) + (dayLabel ? " · " + dayLabel : "") + "</p>";
+    var hasLoaded = (plan.exercises || []).some(function (e) { return !e.noLoad; });
+    if (hasLoaded) html += '<p class="suggest-note">' + escapeHtml(SUGGEST_NOTE) + "</p>";
     if (prog.total) html += progressBarHtml(prog.done, prog.total, "Sets done");
     html += "</div></div>";
     html += '<div class="card"><div class="card-head"><h2>This week\'s plyo contacts</h2>' + categoryTag("plyo") + "</div>";
@@ -1606,8 +1886,15 @@
     html += renderJumps(plan);
     if (plan.exercises && plan.exercises.length) {
       html += '<div class="card"><h2>Work</h2>';
-      var i;
-      for (i = 0; i < plan.exercises.length; i++) html += renderExercise(plan.exercises[i]);
+      var i, shownOpt = false, exer;
+      for (i = 0; i < plan.exercises.length; i++) {
+        exer = plan.exercises[i];
+        if (exer.optional && !shownOpt) {
+          html += '<div class="opt-block"><h3>Optional gym add-on (~30 min)</h3><p class="cue">Speed first. Only do this if the sprints were crisp and the legs still feel fresh. Skip it on a heavy or rusty day.</p></div>';
+          shownOpt = true;
+        }
+        html += renderExercise(exer);
+      }
       html += "</div>";
     }
     if (plan.agility) {
@@ -1741,11 +2028,11 @@
 
   function renderGuide() {
     var html = '<div class="card"><h2>The week</h2>';
-    html += '<p class="cue">Five training days and two recovery days, every week, for 16 weeks in four phases. Calmach and mixed plyos are Home sessions; resistance training is at the Gym. Bodyweight and technique first. Load only with good form. Weeks 4, 8, and 12 are deloads (about half the sets, contacts, and sprints). Week 16 is a taper and retest on Day 3. High school season ends in February; set a Monday start date above if you want calendar dates on each week.</p>';
+    html += '<p class="cue">Five training days and two recovery days, every week, for 16 weeks in three phases. Calmach and mixed plyos are Home sessions; resistance training is at the Gym. Gym days are fuller hypertrophy-style sessions (about 6–8 lifts, 60–75 minutes). Weeks 1–2 are calibration weeks for working weights. Weeks 6 and 11 are deloads (fewer sets, 10–15% lighter suggested loads, and about half the contacts and sprints). Week 16 is a taper and retest on Day 3. Tests are at Weeks 4, 8, 12, and 16, plus a Week 1 baseline. High school season ends in February; set a Monday start date above if you want calendar dates on each week.</p>';
     html += "<table class=\"week-table\"><thead><tr><th>Day</th><th>Where</th><th>Session</th></tr></thead><tbody>";
     html += "<tr><td>Day 1 · Mon</td><td>Gym</td><td>Lower-body strength plus a brief 2 × 3 box jump or CMJ primer (no Calmach)</td></tr>";
     html += "<tr><td>Day 2 · Tue</td><td>Gym / court</td><td>Loaded press and hard pull, then Apex shooting (Gym/Home court)</td></tr>";
-    html += "<tr><td>Day 3 · Wed</td><td>Gym/Home court</td><td>The week’s speed work on fresh legs. Week 16 retest is here.</td></tr>";
+    html += "<tr><td>Day 3 · Wed</td><td>Gym/Home court</td><td>The week’s speed work on fresh legs, then an optional ~30 min upper / full-body gym add-on. Week 16 retest is here.</td></tr>";
     html += "<tr><td>Day 4 · Thu</td><td>Home</td><td>Harder mixed plyos + Calmach (~20–30 min after a full warm-up), then ball handling</td></tr>";
     html += "<tr><td>Day 5 · Fri</td><td>Home / court</td><td>Lighter plyos + Calmach, then core and Apex shooting (Gym/Home court)</td></tr>";
     html += "<tr><td>Day 6 · Sat</td><td>Gym/Home court</td><td>Easy aerobic or easy shooting — no interval sprints</td></tr>";
@@ -1753,20 +2040,20 @@
     html += "</tbody></table>";
     html += '<p class="cue" style="margin-top:10px">Why the week is built this way: a hard jump day never sits the day before gym lower. Monday legs and Thursday hard jumps are about 72 hours apart. Friday is a light jump day, then Saturday easy and Sunday rest, so the legs have a full weekend before Monday’s lifts. Wednesday speed is 48 hours after Monday legs and comes before Thursday jumps, so the sprints stay fresh. Two recovery days are Saturday (easy only) and Sunday (full rest).</p>';
     html += "<table class=\"week-table\" style=\"margin-top:12px\"><thead><tr><th>Phase</th><th>Weeks</th><th>Focus</th></tr></thead><tbody>";
-    html += '<tr class="p1"><td>1 Foundation</td><td>1–4</td><td>Technique, 3 × 8–10, landing practice, about 60–100 contacts, sprints 6–10 × 10–20 yd. Week 4 deload.</td></tr>';
-    html += '<tr class="p2"><td>2 Hypertrophy</td><td>5–8</td><td>Trap-bar or front squat 3–4 × 6–8, accessories 3 × 8–12, about 120–140 contacts, hang jump shrug intro. Week 8 deload.</td></tr>';
-    html += '<tr class="p3"><td>3 Strength</td><td>9–12</td><td>Main lifts 4 × 4–6 heavier, keep 3 × 8–12 accessories, about 140–160 contacts, sprints up to 10–16 + COD. Week 12 deload.</td></tr>';
-    html += '<tr class="p4"><td>4 Power</td><td>13–16</td><td>Main lifts 3 × 3–5 fast, power jumps on home days, one upper day at 3 × 8, about 140–160 contacts, then Week 16 taper and Day 3 retest.</td></tr>';
+    html += '<tr class="p2"><td>1 Hypertrophy</td><td>1–6</td><td>Full gym days, main lifts 4 × 6–8, accessories in the 8–15 range, about 110–130 contacts. Weeks 1–2 calibration. Week 6 deload. Target 1–2 RIR on the last set.</td></tr>';
+    html += '<tr class="p3"><td>2 Strength</td><td>7–11</td><td>Main lifts 4 × 4–6 heavier, still not a max. Accessories stay in a muscle-gain range, about 140–160 contacts. Week 11 deload.</td></tr>';
+    html += '<tr class="p4"><td>3 Power</td><td>12–16</td><td>Main lifts 3 × 3–5 fast, power jumps on home days, about 140–160 contacts, then Week 16 taper and Day 3 retest.</td></tr>';
     html += "</tbody></table></div>";
 
-    html += '<div class="card"><h2>How to add load</h2><p>' + escapeHtml(LOAD_RULE) + "</p>";
+    html += '<div class="card"><h2>How to add load</h2><p>' + escapeHtml(SUGGEST_NOTE) + "</p>";
+    html += "<p>" + escapeHtml(LOAD_RULE) + "</p>";
     html += "<p>Raise Calmach tension only when landings stay quiet. " + escapeHtml(STOP_LOUD) + "</p>";
     html += "<p class=\"cue\">Tempo is written as down-pause-up-pause, in seconds. A 3-0-1-0 squat takes 3 seconds to lower and 1 second to stand, with no pause.</p></div>";
 
     html += '<div class="card"><h2>Why this works</h2>';
     html += "<p>Youth resistance training can be effective and safe when technique, supervision, and gradual progression come first, as in the NSCA 2009 youth resistance-training position statement.</p>";
     html += "<p>A 2016 meta-analysis by Lesinski and colleagues found dose-sensitive improvements in youth strength, jump, and speed when training is programmed with enough rest. More recent work by Zhou and colleagues (2024) continues to support combining resistance training with plyometrics for youth speed and power.</p>";
-    html += "<p>This plan uses those ideas: lift with good form, keep unresisted jump contacts in a moderate weekly range (about 60–100 in Phase 1, about 120–140 in Phase 2, then about 140–160 in Phases 3–4), sprint with full rest, and deload in Weeks 4, 8, and 12. A 15–20 lb gain is a longer-term target and will likely span more than this 16-week block.</p>";
+    html += "<p>This plan uses those ideas: lift with good form, keep unresisted jump contacts in a moderate weekly range (about 110–130 in Phase 1, then about 140–160 in Phases 2–3), sprint with full rest, and deload in Weeks 6 and 11. A 15–20 lb gain is a longer-term target and will likely span more than this 16-week block.</p>";
     html += "<ul class=\"guide\">";
     html += '<li><a href="https://www.nsca.com/globalassets/about/position-statements/position_stand_youth_resistance_training---2009.pdf">NSCA 2009 youth resistance-training position statement (PDF)</a></li>';
     html += '<li><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC4941165/">Lesinski et al., 2016 (PMC4941165)</a></li>';
@@ -1817,6 +2104,10 @@
         modePill.hidden = false;
         modePill.className = "mode-pill test";
         modePill.textContent = "Taper · retest";
+      } else if (mode === "calibrate") {
+        modePill.hidden = false;
+        modePill.className = "mode-pill cal";
+        modePill.textContent = "Calibration";
       } else if (weekIsTest(state.week)) {
         modePill.hidden = false;
         modePill.className = "mode-pill test";
@@ -1885,6 +2176,14 @@
     }
     if (act === "set-wt") {
       setSet(state.week, state.day, t.getAttribute("data-ex"), Number(t.getAttribute("data-i")), { weight: t.value });
+      return;
+    }
+    if (act === "set-reps") {
+      setSet(state.week, state.day, t.getAttribute("data-ex"), Number(t.getAttribute("data-i")), { reps: t.value });
+      return;
+    }
+    if (act === "set-rir") {
+      setSet(state.week, state.day, t.getAttribute("data-ex"), Number(t.getAttribute("data-i")), { rir: t.value });
       return;
     }
     if (act === "shot-m" || act === "shot-a") {
@@ -2081,7 +2380,7 @@
   document.getElementById("app").addEventListener("change", onAppChange);
   document.getElementById("app").addEventListener("input", function (e) {
     var act = e.target.getAttribute("data-act");
-    if (act === "shot-m" || act === "shot-a" || act === "set-wt" || act === "daily-bw" || act === "daily-sleep" || act === "ci-weight" || act === "ci-feet" || act === "ci-inches" || act === "ci-date" || act === "jump-res" || act === "jump-notes" || act === "cond-time" || act === "cond-notes" || act === "test-f") {
+    if (act === "shot-m" || act === "shot-a" || act === "set-wt" || act === "set-reps" || act === "set-rir" || act === "daily-bw" || act === "daily-sleep" || act === "ci-weight" || act === "ci-feet" || act === "ci-inches" || act === "ci-date" || act === "jump-res" || act === "jump-notes" || act === "cond-time" || act === "cond-notes" || act === "test-f") {
       onAppChange(e);
     }
   });
