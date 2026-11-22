@@ -874,6 +874,8 @@
     body.coach-view [data-act="set-notes"],
     body.coach-view [data-act="set-time"],
     body.coach-view [data-act="daily-sauna"],
+    body.coach-view [data-act="daily-boots"],
+    body.coach-view [data-act="daily-plunge"],
     body.coach-view [data-act="hk-start"],
     body.coach-view [data-act="hk-reset"] {
       pointer-events: none;
@@ -1048,9 +1050,11 @@
     return label;
   }
 
-  var LOAD_RULE = "Use double progression: keep the weight until you hit the top of the rep range at the target RIR on every set, then add load next time. No 1-rep-max days. Leave reps in reserve; never take a main lift to failure. Stop the set if bar speed or form drops.";
-  var SUGGEST_NOTE = "Weeks 1–2 set your working weights. Log the weight, reps, and RIR (Easy / Right / Hard) on each set. From week 3 on, you’ll see a suggested load from your best early sets (an Epley estimate — not a 1RM test). Hit the top of the rep range at the target RIR on every set and the next session adds +5 lb on lower barbell lifts or +2.5–5 lb on upper. Miss the bottom of the range and we hold or drop 5–10%. You can always type a different number. Deload weeks suggest 10–15% lighter, with fewer sets. Phase 1 last-set target is 1–2 reps in reserve.";
+  var LOAD_RULE = "Use double progression: keep the weight until you hit the top of the rep range at the target RIR on every set, then add load next time. If you beat the top of the range by 2 or more reps at the target RIR, jump +10 lb on lower lifts or +5 lb on upper lifts. No 1-rep-max days. Leave reps in reserve; never take a main lift to failure. Stop the set if bar speed or form drops.";
+  var SUGGEST_NOTE = "Weeks 1–2 set your working weights. Log the weight, reps, and RIR (Easy / Right / Hard) on each set. From week 3 on, you’ll see a suggested load from your best early sets (an Epley estimate — not a 1RM test). Hit the top of the rep range at the target RIR on every set and the next session adds +5 lb on lower lifts or +2.5–5 lb on upper. Beat the top of the range by 2 or more reps and it jumps +10 lb on lower or +5 lb on upper. Miss the bottom of the range and we hold or drop 5–10%. You can always type a different number. Deload and taper weeks use about 60% of the usual sets and suggest 10–15% lighter. Main lifts target 2 RIR (never to failure or a max). Accessories target 1–2 RIR.";
   var STOP_LOUD = "Stop if landings get loud.";
+  var HOME_PAIN_NOTE = "Any pain in knees, shins, back, or a headache after contact: stop and tell Dad/coach.";
+  var PLUNGE_NOTE = "Skip if dizzy, numb, or too cold; an adult nearby.";
   var CALMACH_PROG = "Raise Calmach tension only when landings stay quiet and you fully reset every rep. Keep it light to moderate. If landings get loud or stiff, reduce tension or stop.";
   var HANG_NOTE = "Only if positions are clean; get coached if possible. If the bar path is messy or you cannot keep a tight finish, skip this lift.";
 
@@ -1246,7 +1250,7 @@
     var phase = phaseFor(week);
     var total = contactSum(planFor(phase, "1", week).exercises || []) + contactSum(planFor(phase, "4", week).exercises || []) + contactSum(planFor(phase, "5", week).exercises || []) + contactSum(planFor(phase, "6", week).exercises || []);
     var mode = weekMode(week);
-    var phaseTarget = phase === "hypertrophy" ? "about 450" : "about 500";
+    var phaseTarget = "about 530–550";
     var note;
     if (mode === "deload") note = "Deload week: Calmach days are about half. Totals include the Monday primer, Calmach jumps, and barefoot pogos on Thu/Fri/Sat. Wednesday sprints and court conditioning are separate.";
     else if (mode === "taper") note = "Taper and retest week: Calmach days are about half. Totals include the Monday primer, Calmach jumps, and barefoot pogos. Wednesday sprints and court conditioning are separate.";
@@ -1266,7 +1270,7 @@
   function calmachEx(id, name, sets, reps, contactsPerSet, rest, cue, extra) {
     var e = plyo(id, name, sets, reps, contactsPerSet, rest, cue);
     e.calmach = true;
-    e.progress = CALMACH_PROG;
+    e.progress = CALMACH_PROG + " " + HOME_PAIN_NOTE;
     if (extra) {
       if (extra.timer) e.timer = extra.timer;
       if (extra.countdownFrom) e.countdownFrom = extra.countdownFrom;
@@ -1276,25 +1280,17 @@
   }
 
   function thursdayCalmach(phase, deload, taper) {
-    var half = deload || taper;
-    var fullRest = "Full reset, at least 60–90 seconds";
+    var cut = deload || taper;
+    var fullRest = "Full rest between jump sets for quality — at least 90 seconds";
     var powerCue = "Jump as high as you can each time!";
-    if (phase === "strength" || phase === "power") {
-      fullRest = "Full rest between jump sets for quality — at least 90 seconds";
-    }
-    if (phase === "power" && !half) {
+    if (phase === "power" && !cut) {
       fullRest = "Full rest between sets — at least 90–120 seconds. Quality and height over hurry.";
-      powerCue = "Jump as high as you can each time! Max-height reps with a full reset.";
+      powerCue = "Jump as high as you can each time! Max-height reps with a full reset. A 4th set is allowed if landings stay quiet.";
     }
-    var pogoS, pogoR, powS, powR, slS, slR, luS, luR, kneeR, hkFrom, stS, stR;
-    if (half && phase === "hypertrophy") {
-      pogoS = 1; pogoR = 10; powS = 1; powR = 10; slS = 1; slR = 6; luS = 1; luR = 10; kneeR = 5; hkFrom = 5; stS = 2; stR = 8;
-    } else if (half) {
-      pogoS = 2; pogoR = 8; powS = 2; powR = 8; slS = 1; slR = 10; luS = 2; luR = 8; kneeR = 5; hkFrom = 5; stS = 2; stR = 8;
-    } else if (phase === "hypertrophy") {
-      pogoS = 2; pogoR = 10; powS = 2; powR = 10; slS = 2; slR = 6; luS = 2; luR = 10; kneeR = 10; hkFrom = 10; stS = 3; stR = 10;
-    } else {
-      pogoS = 3; pogoR = 10; powS = 3; powR = 10; slS = 2; slR = 10; luS = 3; luR = 10; kneeR = 10; hkFrom = 10; stS = 3; stR = 10;
+    var pogoS = 3, pogoR = 10, powS = 3, powR = 10, slS = 2, slR = 10, luS = 3, luR = 10, kneeR = 10, hkFrom = 10, stS = 3, stR = 10;
+    if (!cut && phase === "power") powS = 4;
+    if (cut) {
+      pogoS = 2; pogoR = 10; powS = 2; powR = 10; slS = 2; slR = 6; luS = 2; luR = 10; kneeR = 6; hkFrom = 8; stS = 2; stR = 9;
     }
     return [
       calmachEx("rpvj", "Resisted Pogo Vertical Jumps", pogoS, String(pogoR), pogoR, fullRest, "Spend minimal time on the ground. Quiet, elastic contacts. " + STOP_LOUD),
@@ -1308,13 +1304,13 @@
   }
 
   function fridayCalmach(deload, taper) {
-    var half = deload || taper;
-    var pogoS = half ? 1 : 2, pogoR = 10;
-    var powS = half ? 1 : 2, powR = 5;
-    var stS = half ? 1 : 2, stR = 8;
+    var cut = deload || taper;
+    var pogoS = cut ? 2 : 3, pogoR = 10;
+    var powS = cut ? 2 : 3, powR = 6;
+    var stS = cut ? 2 : 3, stR = 8;
     var rest = "Full reset, at least 60–90 seconds — quality, not hurry";
     return [
-      calmachEx("rpvj", "Resisted Pogo Vertical Jumps", pogoS, String(pogoR), pogoR, rest, "Spend minimal time on the ground. Light day — keep these quiet and elastic. " + STOP_LOUD),
+      calmachEx("rpvj", "Resisted Pogo Vertical Jumps", pogoS, String(pogoR), pogoR, rest, "Spend minimal time on the ground. Keep these quiet and elastic. " + STOP_LOUD),
       calmachEx("rvpj", "Resisted Vertical Power Jumps", powS, String(powR), powR, rest, "Jump as high as you can each time! Quality over volume today."),
       calmachEx("rstep", "Resisted Step-Ups on chair", stS, stR + " each leg", stR * 2, "60–90 seconds after both legs", "Use a sturdy chair. " + stR + " on each leg every set. Control the down step. " + STOP_LOUD)
     ];
@@ -1391,17 +1387,22 @@
 
 
   function phaseRIR(phase) {
-    if (phase === "power") return 3;
     return 2;
   }
 
+  var MAIN_LIFT_IDS = { trapbar: 1, rdl: 1, press: 1, row: 1 };
+
   function lift(id, name, sets, reps, rest, tempo, cue, group, bar, rir) {
-    return ex(id, name, sets, reps, rest, tempo, cue, LOAD_RULE, {
+    var isMain = !!MAIN_LIFT_IDS[id];
+    var e = ex(id, name, sets, reps, rest, tempo, cue, LOAD_RULE, {
       group: group,
       bar: bar,
-      targetRIR: rir,
+      targetRIR: rir != null ? rir : 2,
       increment: (bar === "barbell" || (group === "lower" && bar !== "db")) ? 5 : 2.5
     });
+    e.mainLift = isMain;
+    e.rirLabel = isMain ? "2" : "1–2";
+    return e;
   }
 
   function gymLower(phase, deload, taper) {
@@ -1409,7 +1410,7 @@
     var primer = plyo("primer", "Box jump or countermovement jump (primer)", 2, "3", 3, "Full reset, at least 60 seconds", "Two easy sets of 3 only — a gym primer, not a plyo session. No Calmach. Stick quiet landings. " + STOP_LOUD);
     var trap, rdl, split, press, curl, calf, add;
     if (taper) {
-      trap = lift("trapbar", "Trap-bar deadlift or back / front squat", 2, "3", "2–3+ minutes", "Fast but comfortable, not a max", "Crisp, easy bar speed. This is taper work, not a heavy day. Same lift as the rest of the block.", "lower", "barbell", rir);
+      trap = lift("trapbar", "Trap-bar deadlift or back / front squat", 3, "3", "2–3+ minutes", "Fast but comfortable, not a max", "Crisp, easy bar speed. This is taper work, not a heavy day. Same lift as the rest of the block.", "lower", "barbell", rir);
       rdl = lift("rdl", "Romanian deadlift", 2, "5", "2 minutes", "Controlled down, smooth stand", "Quality hinge only. Do not grind.", "lower", "barbell", rir);
       split = lift("split", "Bulgarian split squat", 2, "5 each leg", "90 seconds after both legs", "Controlled, smooth", "Front foot planted, torso tall. Quality, not a max.", "lower", "db", rir);
       calf = lift("calf", "Calf raise", 2, "10–12", "45–60 seconds", "Full range, 1-second squeeze", "Easy volume. Skip if the lower legs are fried.", "lower", "db", rir);
@@ -1420,29 +1421,29 @@
       return [primer, trap, rdl, split, calf];
     }
     if (phase === "hypertrophy") {
-      trap = lift("trapbar", "Trap-bar deadlift or back / front squat", deload ? 3 : 4, "6–8", "2–3+ minutes", "3-0-1-0", "This is the main lower lift. Pick one (trap-bar, back squat, or front squat) and keep it for the block. Neutral spine, complete every stand. Leave 1–2 reps in reserve on the last set. No failure.", "lower", "barbell", rir);
-      rdl = lift("rdl", "Romanian deadlift", deload ? 2 : 3, "8–10", "2 minutes", "3-0-1-0", "Push the hips back, soft knees, spine long. Soften the knees only as much as you need. Stop short of failure.", "lower", "barbell", rir);
-      split = lift("split", "Bulgarian split squat", deload ? 2 : 3, "8–10 each leg", "90 seconds after both legs", "2-1-1-0", "Front heel down, torso tall, back knee drops straight down. Use a short, stable stance. Bodyweight or light dumbbells until both sides match.", "lower", "db", rir);
-      press = lift("legpress", "Leg press or hack squat", deload ? 2 : 3, "10–12", "90 seconds to 2 minutes", "2-0-1-0", "Full, controlled range. Do not lock out hard or let the low back peel off the pad.", "lower", "machine", rir);
-      curl = lift("legcurl", "Leg curl", deload ? 2 : 3, "10–12", "60–90 seconds", "2-0-1-0", "Control the lowering. Stop if the hips start to hitch.", "lower", "machine", rir);
-      calf = lift("calf", "Calf raise", deload ? 3 : 4, "12–15", "45–60 seconds", "Full range, 1-second squeeze", "Straight but not locked knees. Pause at the top.", "lower", "db", rir);
-      add = lift("adductor", "Copenhagen plank, adductor work, or core", deload ? 2 : 3, "8–12 each side or 20–30 seconds", "45–60 seconds", "Steady and controlled", "Quality over intensity. A Copenhagen hold, side-lying adductor lift, or a hard plank is fine. Stop if the hips sag or the groin pinches.", "lower", "db", rir);
+      trap = lift("trapbar", "Trap-bar deadlift or back / front squat", deload ? 3 : 5, "6–8", "2–3+ minutes", "3-0-1-0", "This is the main lower lift. Pick one (trap-bar, back squat, or front squat) and keep it for the block. Neutral spine, complete every stand. Leave about 2 reps in reserve. No failure and no max.", "lower", "barbell", rir);
+      rdl = lift("rdl", "Romanian deadlift", deload ? 2 : 4, "8–10", "2 minutes", "3-0-1-0", "Push the hips back, soft knees, spine long. Soften the knees only as much as you need. Stop short of failure.", "lower", "barbell", rir);
+      split = lift("split", "Bulgarian split squat", deload ? 2 : 4, "8–10 each leg", "90 seconds after both legs", "2-1-1-0", "Front heel down, torso tall, back knee drops straight down. Use a short, stable stance. Bodyweight or light dumbbells until both sides match.", "lower", "db", rir);
+      press = lift("legpress", "Leg press or hack squat", deload ? 2 : 4, "10–12", "90 seconds to 2 minutes", "2-0-1-0", "Full, controlled range. Do not lock out hard or let the low back peel off the pad.", "lower", "machine", rir);
+      curl = lift("legcurl", "Leg curl", deload ? 2 : 4, "10–12", "60–90 seconds", "2-0-1-0", "Control the lowering. Stop if the hips start to hitch.", "lower", "machine", rir);
+      calf = lift("calf", "Calf raise", deload ? 3 : 5, "12–15", "45–60 seconds", "Full range, 1-second squeeze", "Straight but not locked knees. Pause at the top.", "lower", "db", rir);
+      add = lift("adductor", "Copenhagen plank, adductor work, or core", deload ? 2 : 4, "8–12 each side or 20–30 seconds", "45–60 seconds", "Steady and controlled", "Quality over intensity. A Copenhagen hold, side-lying adductor lift, or a hard plank is fine. Stop if the hips sag or the groin pinches.", "lower", "db", rir);
     } else if (phase === "strength") {
-      trap = lift("trapbar", "Trap-bar deadlift or back / front squat", deload ? 3 : 4, "4–6", "2–3+ minutes", "Controlled down, strong stand", "Heavier strength work, still not a max. Same lift as Phase 1. Leave about 2 reps in reserve. Stop if bar speed drops.", "lower", "barbell", rir);
-      rdl = lift("rdl", "Romanian deadlift", deload ? 2 : 3, "6–8", "2–3 minutes", "3-0-1-0", "Keep a long spine and a tight hinge. Leave reps in reserve.", "lower", "barbell", rir);
-      split = lift("split", "Bulgarian split squat", deload ? 2 : 3, "6–8 each leg", "90 seconds after both legs", "2-1-1-0", "Stable stance, torso tall. A little heavier than Phase 1, still not a grind.", "lower", "db", rir);
-      press = lift("legpress", "Leg press or hack squat", deload ? 2 : 3, "8–10", "90 seconds to 2 minutes", "2-0-1-0", "Controlled depth, no bouncing.", "lower", "machine", rir);
-      curl = lift("legcurl", "Leg curl", deload ? 2 : 3, "8–12", "60–90 seconds", "2-0-1-0", "Hypertrophy accessory. Control the lowering.", "lower", "machine", rir);
-      calf = lift("calf", "Calf raise", deload ? 2 : 3, "10–12", "45–60 seconds", "Full range, 1-second squeeze", "Pause at the top.", "lower", "db", rir);
-      add = lift("adductor", "Copenhagen plank, adductor work, or core", deload ? 2 : 3, "8–12 each side or 20–30 seconds", "45–60 seconds", "Steady and controlled", "Keep this as quality control work, not a max effort.", "lower", "db", rir);
+      trap = lift("trapbar", "Trap-bar deadlift or back / front squat", deload ? 3 : 5, "4–6", "2–3+ minutes", "Controlled down, strong stand", "Heavier strength work, still not a max. Same lift as Phase 1. Leave about 2 reps in reserve. Stop if bar speed drops.", "lower", "barbell", rir);
+      rdl = lift("rdl", "Romanian deadlift", deload ? 2 : 4, "6–8", "2–3 minutes", "3-0-1-0", "Keep a long spine and a tight hinge. Leave reps in reserve.", "lower", "barbell", rir);
+      split = lift("split", "Bulgarian split squat", deload ? 2 : 4, "6–8 each leg", "90 seconds after both legs", "2-1-1-0", "Stable stance, torso tall. A little heavier than Phase 1, still not a grind.", "lower", "db", rir);
+      press = lift("legpress", "Leg press or hack squat", deload ? 2 : 4, "8–10", "90 seconds to 2 minutes", "2-0-1-0", "Controlled depth, no bouncing.", "lower", "machine", rir);
+      curl = lift("legcurl", "Leg curl", deload ? 2 : 4, "8–12", "60–90 seconds", "2-0-1-0", "Hypertrophy accessory. Control the lowering.", "lower", "machine", rir);
+      calf = lift("calf", "Calf raise", deload ? 2 : 4, "10–12", "45–60 seconds", "Full range, 1-second squeeze", "Pause at the top.", "lower", "db", rir);
+      add = lift("adductor", "Copenhagen plank, adductor work, or core", deload ? 2 : 4, "8–12 each side or 20–30 seconds", "45–60 seconds", "Steady and controlled", "Keep this as quality control work, not a max effort.", "lower", "db", rir);
     } else {
-      trap = lift("trapbar", "Trap-bar deadlift or back / front squat", 3, "3–5", "2–3+ minutes", "Fast stand, not a grind and not a max", "Move the bar quickly with clean positions. Leave about 3 reps in reserve so bar speed stays high. Power jumps are on the home days.", "lower", "barbell", rir);
-      rdl = lift("rdl", "Romanian deadlift", 3, "5–6", "2 minutes", "Controlled down, crisp stand", "Crisp, not heavy. Stop if the back rounds.", "lower", "barbell", rir);
-      split = lift("split", "Bulgarian split squat", 3, "5–6 each leg", "90 seconds after both legs", "Controlled, smooth", "Quality single-leg work, not a grind.", "lower", "db", rir);
-      press = lift("legpress", "Leg press or hack squat", 3, "6–8", "90 seconds to 2 minutes", "Smooth, no bounce", "Keep these snappy. Stop short of failure.", "lower", "machine", rir);
-      curl = lift("legcurl", "Leg curl", 2, "8–10", "60–90 seconds", "2-0-1-0", "Light to moderate accessory work.", "lower", "machine", rir);
-      calf = lift("calf", "Calf raise", 3, "8–12", "45–60 seconds", "Full range, 1-second squeeze", "Quality range, not a shake-to-failure set.", "lower", "db", rir);
-      add = lift("adductor", "Copenhagen plank, adductor work, or core", 2, "8–12 each side or 20–30 seconds", "45–60 seconds", "Steady and controlled", "Keep it clean and brief.", "lower", "db", rir);
+      trap = lift("trapbar", "Trap-bar deadlift or back / front squat", 4, "3–5", "2–3+ minutes", "Fast stand, not a grind and not a max", "Move the bar quickly with clean positions. Leave about 2 reps in reserve so bar speed stays high. No failure or max. Power jumps are on the home days.", "lower", "barbell", rir);
+      rdl = lift("rdl", "Romanian deadlift", 4, "5–6", "2 minutes", "Controlled down, crisp stand", "Crisp, not heavy. Stop if the back rounds.", "lower", "barbell", rir);
+      split = lift("split", "Bulgarian split squat", 4, "5–6 each leg", "90 seconds after both legs", "Controlled, smooth", "Quality single-leg work, not a grind.", "lower", "db", rir);
+      press = lift("legpress", "Leg press or hack squat", 4, "6–8", "90 seconds to 2 minutes", "Smooth, no bounce", "Keep these snappy. Stop short of failure.", "lower", "machine", rir);
+      curl = lift("legcurl", "Leg curl", 3, "8–10", "60–90 seconds", "2-0-1-0", "Light to moderate accessory work.", "lower", "machine", rir);
+      calf = lift("calf", "Calf raise", 4, "8–12", "45–60 seconds", "Full range, 1-second squeeze", "Quality range, not a shake-to-failure set.", "lower", "db", rir);
+      add = lift("adductor", "Copenhagen plank, adductor work, or core", 3, "8–12 each side or 20–30 seconds", "45–60 seconds", "Steady and controlled", "Keep it clean and brief.", "lower", "db", rir);
     }
     press.increment = 5;
     curl.increment = 5;
@@ -1453,8 +1454,8 @@
     var rir = phaseRIR(phase);
     var bench, pull, row, ohp, incline, laterals, bis, tris;
     if (taper) {
-      bench = lift("press", "Dumbbell or barbell bench press", 2, "8", "2 minutes", "2-0-1-0, smooth", "Clean, easy reps. This is taper work, not a heavy day.", "upper", "barbell", rir);
-      pull = lift("row", "Pull-up or lat pulldown", 2, "8", "2 minutes", "2-1-2-0", "Strong squeeze, no shrug. Assisted or a pulldown is fine.", "upper", "barbell", rir);
+      bench = lift("press", "Dumbbell or barbell bench press", 3, "8", "2 minutes", "2-0-1-0, smooth", "Clean, easy reps. This is taper work, not a heavy day.", "upper", "barbell", rir);
+      pull = lift("row", "Pull-up or lat pulldown", 3, "8", "2 minutes", "2-1-2-0", "Strong squeeze, no shrug. Assisted or a pulldown is fine.", "upper", "barbell", rir);
       row = lift("cablerow", "Seated cable or chest-supported row", 2, "10", "90 seconds", "2-1-2-0", "Easy, clean squeezes.", "upper", "db", rir);
       bench.progress = "Do not add load this week.";
       pull.progress = "Do not add load this week.";
@@ -1462,32 +1463,32 @@
       return [bench, pull, row];
     }
     if (phase === "hypertrophy") {
-      bench = lift("press", "Dumbbell or barbell bench press", deload ? 3 : 4, "6–10", "2–3 minutes", "2-0-1-0", "Main upper press. Ribs down, feet planted. Leave 1–2 reps in reserve on the last set. Do not bounce the bar or take this to failure.", "upper", "barbell", rir);
-      pull = lift("row", "Pull-up or lat pulldown", deload ? 3 : 4, "8–10", "2–3 minutes", "2-1-2-0 (1-second squeeze)", "A hard pull. Use a band, an assisted machine, or a pulldown if you cannot do strict pull-ups yet. Quiet neck, no kipping.", "upper", "barbell", rir);
-      row = lift("cablerow", "Seated cable or chest-supported row", deload ? 2 : 3, "10–12", "90 seconds to 2 minutes", "2-1-2-0", "Chest supported if you can. Squeeze the shoulder blades and do not shrug.", "upper", "db", rir);
-      ohp = lift("ohp", "Dumbbell shoulder press", deload ? 2 : 3, "8–12", "90 seconds to 2 minutes", "2-0-1-0", "Ribs down. Stop if you lean back to finish the rep.", "upper", "db", rir);
-      incline = lift("incline", "Incline dumbbell press", deload ? 2 : 3, "10–12", "90 seconds", "2-0-1-0", "A moderate incline. Soft landing at the bottom, no bounce.", "upper", "db", rir);
-      laterals = lift("laterals", "Lateral raise", deload ? 2 : 3, "12–15", "45–60 seconds", "2-0-1-0, no swing", "Light dumbbells, slight elbow bend. Lead with the elbows, not the hands.", "upper", "db", rir);
-      bis = lift("biceps", "Biceps curl", deload ? 2 : 3, "10–12", "45–60 seconds", "2-0-1-0", "Strict, no sway. Pick one curl variation and keep it.", "upper", "db", rir);
-      tris = lift("triceps", "Triceps extension or pushdown", deload ? 2 : 3, "10–12", "45–60 seconds", "2-0-1-0", "Elbows stay put. Stop if the elbows flare and the shoulders take over.", "upper", "db", rir);
+      bench = lift("press", "Dumbbell or barbell bench press", deload ? 3 : 5, "6–10", "2–3 minutes", "2-0-1-0", "Main upper press. Ribs down, feet planted. Leave about 2 reps in reserve. Do not bounce the bar or take this to failure or a max.", "upper", "barbell", rir);
+      pull = lift("row", "Pull-up or lat pulldown", deload ? 3 : 5, "8–10", "2–3 minutes", "2-1-2-0 (1-second squeeze)", "A hard pull. Use a band, an assisted machine, or a pulldown if you cannot do strict pull-ups yet. Quiet neck, no kipping.", "upper", "barbell", rir);
+      row = lift("cablerow", "Seated cable or chest-supported row", deload ? 2 : 4, "10–12", "90 seconds to 2 minutes", "2-1-2-0", "Chest supported if you can. Squeeze the shoulder blades and do not shrug.", "upper", "db", rir);
+      ohp = lift("ohp", "Dumbbell shoulder press", deload ? 2 : 4, "8–12", "90 seconds to 2 minutes", "2-0-1-0", "Ribs down. Stop if you lean back to finish the rep.", "upper", "db", rir);
+      incline = lift("incline", "Incline dumbbell press", deload ? 2 : 4, "10–12", "90 seconds", "2-0-1-0", "A moderate incline. Soft landing at the bottom, no bounce.", "upper", "db", rir);
+      laterals = lift("laterals", "Lateral raise", deload ? 2 : 4, "12–15", "45–60 seconds", "2-0-1-0, no swing", "Light dumbbells, slight elbow bend. Lead with the elbows, not the hands.", "upper", "db", rir);
+      bis = lift("biceps", "Biceps curl", deload ? 2 : 4, "10–12", "45–60 seconds", "2-0-1-0", "Strict, no sway. Pick one curl variation and keep it.", "upper", "db", rir);
+      tris = lift("triceps", "Triceps extension or pushdown", deload ? 2 : 4, "10–12", "45–60 seconds", "2-0-1-0", "Elbows stay put. Stop if the elbows flare and the shoulders take over.", "upper", "db", rir);
     } else if (phase === "strength") {
-      bench = lift("press", "Dumbbell or barbell bench press", deload ? 3 : 4, "5–8", "2–3+ minutes", "2-0-1-0", "A little heavier, still not a max. Leave about 2 reps in reserve. Stop if bar speed drops.", "upper", "barbell", rir);
-      pull = lift("row", "Pull-up or lat pulldown", deload ? 3 : 4, "6–8", "2–3+ minutes", "2-1-2-0", "Strict pulls. Add a small weight only if a set of 8 is clean and easy.", "upper", "barbell", rir);
-      row = lift("cablerow", "Seated cable or chest-supported row", deload ? 2 : 3, "8–10", "90 seconds to 2 minutes", "2-1-2-0", "Hard squeeze, quiet neck.", "upper", "db", rir);
-      ohp = lift("ohp", "Dumbbell shoulder press", deload ? 2 : 3, "6–10", "90 seconds to 2 minutes", "2-0-1-0", "Ribs down, no back-bend to finish.", "upper", "db", rir);
-      incline = lift("incline", "Incline dumbbell press", deload ? 2 : 3, "8–10", "90 seconds", "2-0-1-0", "Controlled, no bounce.", "upper", "db", rir);
-      laterals = lift("laterals", "Lateral raise", deload ? 2 : 3, "12–15", "45–60 seconds", "2-0-1-0, no swing", "Keep these light and strict.", "upper", "db", rir);
-      bis = lift("biceps", "Biceps curl", deload ? 2 : 3, "8–12", "45–60 seconds", "2-0-1-0", "Strict curls.", "upper", "db", rir);
-      tris = lift("triceps", "Triceps extension or pushdown", deload ? 2 : 3, "8–12", "45–60 seconds", "2-0-1-0", "Elbows stay put.", "upper", "db", rir);
+      bench = lift("press", "Dumbbell or barbell bench press", deload ? 3 : 5, "5–8", "2–3+ minutes", "2-0-1-0", "A little heavier, still not a max. Leave about 2 reps in reserve. Stop if bar speed drops.", "upper", "barbell", rir);
+      pull = lift("row", "Pull-up or lat pulldown", deload ? 3 : 5, "6–8", "2–3+ minutes", "2-1-2-0", "Strict pulls. Add a small weight only if a set of 8 is clean and easy.", "upper", "barbell", rir);
+      row = lift("cablerow", "Seated cable or chest-supported row", deload ? 2 : 4, "8–10", "90 seconds to 2 minutes", "2-1-2-0", "Hard squeeze, quiet neck.", "upper", "db", rir);
+      ohp = lift("ohp", "Dumbbell shoulder press", deload ? 2 : 4, "6–10", "90 seconds to 2 minutes", "2-0-1-0", "Ribs down, no back-bend to finish.", "upper", "db", rir);
+      incline = lift("incline", "Incline dumbbell press", deload ? 2 : 4, "8–10", "90 seconds", "2-0-1-0", "Controlled, no bounce.", "upper", "db", rir);
+      laterals = lift("laterals", "Lateral raise", deload ? 2 : 4, "12–15", "45–60 seconds", "2-0-1-0, no swing", "Keep these light and strict.", "upper", "db", rir);
+      bis = lift("biceps", "Biceps curl", deload ? 2 : 4, "8–12", "45–60 seconds", "2-0-1-0", "Strict curls.", "upper", "db", rir);
+      tris = lift("triceps", "Triceps extension or pushdown", deload ? 2 : 4, "8–12", "45–60 seconds", "2-0-1-0", "Elbows stay put.", "upper", "db", rir);
     } else {
-      bench = lift("press", "Dumbbell or barbell bench press", 3, "5–8", "2–3 minutes", "Fast, smooth press, not a grind", "Crisp reps, about 3 reps in reserve. This is not a max upper day.", "upper", "barbell", rir);
-      pull = lift("row", "Pull-up or lat pulldown", 3, "5–8", "2–3 minutes", "Crisp pull, tight finish", "Quality, not a max set of pull-ups.", "upper", "barbell", rir);
-      row = lift("cablerow", "Seated cable or chest-supported row", 3, "8–10", "90 seconds", "2-1-2-0", "Crisp squeezes.", "upper", "db", rir);
-      ohp = lift("ohp", "Dumbbell shoulder press", 3, "6–8", "90 seconds", "Smooth and crisp", "Ribs down. Leave reps in reserve.", "upper", "db", rir);
-      incline = lift("incline", "Incline dumbbell press", 2, "8–10", "90 seconds", "2-0-1-0", "Moderate volume in the power block.", "upper", "db", rir);
-      laterals = lift("laterals", "Lateral raise", 2, "12–15", "45–60 seconds", "2-0-1-0, no swing", "Light and strict.", "upper", "db", rir);
-      bis = lift("biceps", "Biceps curl", 2, "8–12", "45–60 seconds", "2-0-1-0", "Strict curls.", "upper", "db", rir);
-      tris = lift("triceps", "Triceps extension or pushdown", 2, "8–12", "45–60 seconds", "2-0-1-0", "Elbows stay put.", "upper", "db", rir);
+      bench = lift("press", "Dumbbell or barbell bench press", 4, "5–8", "2–3 minutes", "Fast, smooth press, not a grind", "Crisp reps, about 2 reps in reserve. This is not a max upper day.", "upper", "barbell", rir);
+      pull = lift("row", "Pull-up or lat pulldown", 4, "5–8", "2–3 minutes", "Crisp pull, tight finish", "Quality, not a max set of pull-ups.", "upper", "barbell", rir);
+      row = lift("cablerow", "Seated cable or chest-supported row", 4, "8–10", "90 seconds", "2-1-2-0", "Crisp squeezes.", "upper", "db", rir);
+      ohp = lift("ohp", "Dumbbell shoulder press", 4, "6–8", "90 seconds", "Smooth and crisp", "Ribs down. Leave reps in reserve.", "upper", "db", rir);
+      incline = lift("incline", "Incline dumbbell press", 3, "8–10", "90 seconds", "2-0-1-0", "Moderate volume in the power block.", "upper", "db", rir);
+      laterals = lift("laterals", "Lateral raise", 3, "12–15", "45–60 seconds", "2-0-1-0, no swing", "Light and strict.", "upper", "db", rir);
+      bis = lift("biceps", "Biceps curl", 3, "8–12", "45–60 seconds", "2-0-1-0", "Strict curls.", "upper", "db", rir);
+      tris = lift("triceps", "Triceps extension or pushdown", 3, "8–12", "45–60 seconds", "2-0-1-0", "Elbows stay put.", "upper", "db", rir);
     }
     return [bench, pull, row, ohp, incline, laterals, bis, tris];
   }
@@ -1572,7 +1573,7 @@
 
     if (day === "4") {
       title = "Home Calmach jumps + handles";
-      focus = "The hard home jump day on the Calmach. Start barefoot with the foot / ankle block (~10 minutes), then shoes on for Blake’s resisted jump routine, then ball handling. No gym lifts today.";
+      focus = "The hard home jump day on the Calmach. Start barefoot with the foot / ankle block (~10 minutes), then shoes on for Blake’s full resisted jump routine, then ball handling. No gym lifts today. " + HOME_PAIN_NOTE;
       handles = homeHandles(phase, deload, taper);
       exercises = footBlockExercises(week).concat(thursdayCalmach(phase, deload, taper)).concat([handles]);
       return { title: title, focus: focus, kind: "train", location: "home", exercises: exercises, footWarmup: true };
@@ -1580,7 +1581,7 @@
 
     if (day === "5") {
       title = "Home Calmach (light) + core + shooting";
-      focus = "A lighter Calmach day so Monday gym lower stays fresh. Start barefoot with the foot / ankle block, then shoes on for a short resisted jump session, then core. Apex shooting is labeled Gym/Home court — use whichever court you have.";
+      focus = "A lighter Calmach day so Monday gym lower stays fresh, but still dense: pogos 3 × 10, vertical power 3 × 6, and step-ups 3 × 8 each. Start barefoot with the foot / ankle block, then shoes on, then core. Apex shooting is labeled Gym/Home court — use whichever court you have. " + HOME_PAIN_NOTE;
       if (p1) {
         core = [
           ex("plank", "Front plank", deload ? 2 : 3, "30 seconds", "45 seconds", "Steady brace", "Ribs down, glutes on. Come down if the hips pike or sag.", "Add 5 seconds only if all sets stay clean."),
@@ -2329,10 +2330,15 @@
 
   function sessionQuality(exId, week, range, targetRIR) {
     var sets = sessionSets(exId, week).filter(function (s) { return s.reps != null; });
-    var hitTop = false, missed = 0, i, s;
-    if (!sets.length) return { usable: false, hitTop: false, missed: 0, total: 0 };
+    var hitTop = false, beatTopBy2 = false, missed = 0, i, s;
+    if (!sets.length) return { usable: false, hitTop: false, beatTopBy2: false, missed: 0, total: 0 };
     hitTop = sets.every(function (row) {
       if (row.reps < range.hi) return false;
+      if (row.rir != null && row.rir < targetRIR) return false;
+      return true;
+    });
+    beatTopBy2 = sets.every(function (row) {
+      if (row.reps < range.hi + 2) return false;
       if (row.rir != null && row.rir < targetRIR) return false;
       return true;
     });
@@ -2340,7 +2346,7 @@
       s = sets[i];
       if (s.reps < range.lo) missed++;
     }
-    return { usable: true, hitTop: hitTop, missed: missed, total: sets.length };
+    return { usable: true, hitTop: hitTop, beatTopBy2: beatTopBy2, missed: missed, total: sets.length };
   }
 
   function roundTo(n, step) {
@@ -2371,7 +2377,8 @@
     var lastWt = prevW ? workingWeightFromSession(exer.id, prevW) : null;
     var usePercent = e1 && (!prevW || prevW <= 2 || prevPhase !== curPhase);
     var suggested = null;
-    var bump = (exer.group === "lower" || exer.bar === "barbell") ? 5 : step;
+    var bump = (exer.group === "lower") ? 5 : step;
+    var hardBump = (exer.group === "lower") ? 10 : 5;
 
     if (usePercent) {
       suggested = e1 / (1 + (range.hi + targetRIR) / 30);
@@ -2380,7 +2387,8 @@
       var prevRange = parseRepRange(prevEx.reps);
       var prevRIR = prevEx.targetRIR != null ? prevEx.targetRIR : 2;
       var q = sessionQuality(exer.id, prevW, prevRange, prevRIR);
-      if (q.usable && q.hitTop) suggested = lastWt + bump;
+      if (q.usable && q.beatTopBy2) suggested = lastWt + hardBump;
+      else if (q.usable && q.hitTop) suggested = lastWt + bump;
       else if (q.usable && (q.missed >= 2 || (q.missed >= 1 && q.missed === q.total))) suggested = lastWt * 0.90;
       else suggested = lastWt;
     } else if (e1) {
@@ -2575,7 +2583,7 @@
     html += '<p class="meta"><strong class="nowrap">' + escapeHtml(String(exer.sets)) + " × " + escapeHtml(exer.reps) + "</strong>";
     html += " · Rest " + escapeHtml(exer.rest);
     if (exer.tempo) html += " · <span class=\"nowrap\">" + (/\d-\d-\d/.test(exer.tempo) ? "Tempo " : "") + escapeHtml(exer.tempo) + "</span>";
-    if (exer.targetRIR != null) html += ' · <span class="nowrap">Target RIR ' + exer.targetRIR + "</span>";
+    if (exer.targetRIR != null) html += ' · <span class="nowrap">Target RIR ' + escapeHtml(String(exer.rirLabel || exer.targetRIR)) + "</span>";
     html += "</p>";
     html += '<p class="cue">' + escapeHtml(exer.cue) + "</p>";
     if (exer.progress) html += '<p class="progress-rule"><strong>Progress:</strong> ' + escapeHtml(exer.progress) + "</p>";
@@ -2741,7 +2749,7 @@
 
   function renderFootBlock(plan) {
     var html = '<div class="card"><div class="card-head"><h2>Foot / ankle warm-up</h2>' + categoryTag("prehab") + "</div>";
-    html += '<p class="callout">' + escapeHtml(FOOT_NOTE) + "</p>";
+    html += '<p class="callout">' + escapeHtml(FOOT_NOTE) + " " + escapeHtml(HOME_PAIN_NOTE) + "</p>";
     html += '<p class="page-note">About 10 minutes, barefoot on a mat, turf, or grass. Then shoes on for Calmach jumps, lifting, or court conditioning.</p>';
     var list = plan.exercises || [], i, exer;
     for (i = 0; i < list.length; i++) {
@@ -2753,16 +2761,32 @@
     return html;
   }
 
+  function isLiftEvening(day) { return day === "1" || day === "2"; }
+  function plungeDay(day) { return day === "4" || day === "5" || day === "6"; }
+
   function renderRecoveryPage() {
     var daily = dayDaily();
+    var liftNight = isLiftEvening(state.day);
+    var plungeOk = plungeDay(state.day);
     var html = '<div class="screen">';
-    html += topbar("Recovery", "Sauna, water, and rest");
+    html += topbar("Recovery", "Sauna, boots, and plunge");
     html += '<div class="screen-body">';
+    if (liftNight) html += '<p class="callout">Sauna + boots tonight, no plunge.</p>';
+    else if (plungeOk) html += '<p class="callout">Plunge is OK today (Thursday, Friday, Saturday, or after a game / hard practice). Not within about 6 hours after gym lifting.</p>';
+    else html += '<p class="callout">Boots are fine tonight. A plunge only if you had a game or hard practice — not within about 6 hours after gym lifting.</p>';
     html += '<div class="card"><h2>Sauna</h2>';
-    html += "<p>10–15 minutes, 3–4 times a week. Best on gym-lifting evenings (Monday, Tuesday, or Wednesday), paired with boots. Never right before practice or games. Drink 16–20 oz of water before and after.</p>";
-    html += '<p class="callout">' + escapeHtml(SAUNA_NOTE) + "</p>";
-    html += "<p>If you do both the sauna and a plunge on a non-lifting day, finish with the plunge.</p>";
+    html += "<p>10–15 minutes, 3–4 times a week. Best on gym-lifting evenings (Monday, Tuesday, or Wednesday), paired with Anaconda compression boots. Never right before practice or games. Drink 16–20 oz of water before and after.</p>";
+    html += '<p class="cue">' + escapeHtml(SAUNA_NOTE) + "</p>";
     html += '<label class="field">Sauna today (minutes)<input type="number" inputmode="numeric" min="0" step="1" data-act="daily-sauna" value="' + escapeHtml(daily.sauna || "") + '" placeholder="10–15"></label>';
+    html += "</div>";
+    html += '<div class="card"><h2>Anaconda compression boots</h2>';
+    html += "<p>20–30 minutes on any evening. On lifting days, pair them with the sauna.</p>";
+    html += '<label class="field">Boots today (minutes)<input type="number" inputmode="numeric" min="0" step="1" data-act="daily-boots" value="' + escapeHtml(daily.boots || "") + '" placeholder="20–30"></label>';
+    html += "</div>";
+    html += '<div class="card"><h2>Cold plunge</h2>';
+    html += "<p>50–59°F for 2–5 minutes (start at 2 minutes). Only on Thursday, Friday, Saturday, or after a game or hard practice. Not within about 6 hours after gym lifting. If you do both the sauna and a plunge on a non-lifting day, finish with the plunge.</p>";
+    html += '<p class="callout">' + escapeHtml(PLUNGE_NOTE) + "</p>";
+    html += '<label class="field">Plunge today (minutes)<input type="number" inputmode="decimal" min="0" step="0.5" data-act="daily-plunge" value="' + escapeHtml(daily.plunge || "") + '" placeholder="2–5"></label>';
     html += "</div>";
     html += '<div class="card"><h2>Rest of the week</h2>';
     html += "<p>Sleep 8–10 hours. Keep meals and the bedtime shake the same on rest days. Easy stretching is fine. Guard conditioning stays off Monday and Tuesday evenings.</p>";
@@ -3015,21 +3039,21 @@
     html += "<tr><td>Day 1 · Mon</td><td>Gym</td><td>Lower-body strength plus a brief 2 × 3 box jump or CMJ primer (no Calmach)</td></tr>";
     html += "<tr><td>Day 2 · Tue</td><td>Gym / court</td><td>Loaded press and hard pull, then Apex shooting (Gym/Home court)</td></tr>";
     html += "<tr><td>Day 3 · Wed</td><td>Gym/Home court</td><td>The week’s speed work on fresh legs, then an optional ~30 min upper / full-body gym add-on. Week 16 retest is here.</td></tr>";
-    html += "<tr><td>Day 4 · Thu</td><td>Home</td><td>Barefoot foot / ankle warm-up, then shoes on for the full Calmach routine (phase-scaled), then ball handling</td></tr>";
-    html += "<tr><td>Day 5 · Fri</td><td>Home / court</td><td>Barefoot foot / ankle warm-up, then a light Calmach session, then core and Apex shooting (Gym/Home court)</td></tr>";
+    html += "<tr><td>Day 4 · Thu</td><td>Home</td><td>Barefoot foot / ankle warm-up, then shoes on for Blake’s full Calmach routine, then ball handling</td></tr>";
+    html += "<tr><td>Day 5 · Fri</td><td>Home / court</td><td>Barefoot foot / ankle warm-up, then Friday Calmach (pogos 3 × 10, power 3 × 6, step-ups 3 × 8 each), then core and Apex shooting (Gym/Home court)</td></tr>";
     html += "<tr><td>Day 6 · Sat</td><td>Gym/Home court</td><td>Foot / ankle block, then light guard conditioning (weeks 1–11) or a fuller pre-season block (weeks 12–16). Skip conditioning if there is an AAU game or practice today or tomorrow.</td></tr>";
     html += "<tr><td>Day 7 · Sun</td><td>Rest</td><td>Full rest</td></tr>";
     html += "</tbody></table>";
     html += '<p class="cue" style="margin-top:10px">Why the week is built this way: a hard jump day never sits the day before gym lower. Monday legs and Thursday hard jumps are about 72 hours apart. Friday is a light jump day, then Saturday easy and Sunday rest, so the legs have a full weekend before Monday’s lifts. Wednesday speed is 48 hours after Monday legs and comes before Thursday jumps, so the sprints stay fresh. Two recovery days are Saturday (easy only) and Sunday (full rest).</p>';
     html += "<table class=\"week-table\" style=\"margin-top:12px\"><thead><tr><th>Phase</th><th>Weeks</th><th>Focus</th></tr></thead><tbody>";
-    html += '<tr class="p2"><td>1 Hypertrophy</td><td>1–6</td><td>Full gym days, main lifts 4 × 6–8, accessories in the 8–15 range, Calmach at 2 sets on most Thursday jumps (single-leg 2 × 6 each). About 450 jump contacts. Saturday light guard conditioning only. Weeks 1–2 calibration. Week 6 deload. Target 1–2 RIR on the last set.</td></tr>';
-    html += '<tr class="p3"><td>2 Strength</td><td>7–11</td><td>Main lifts 4 × 4–6 heavier, still not a max. Accessories stay in a muscle-gain range. Thursday Calmach builds to Blake’s full prescription with full rest. About 500 jump contacts. Saturday light guard conditioning only. Week 11 deload.</td></tr>';
-    html += '<tr class="p4"><td>3 Power</td><td>12–16</td><td>Main lifts 3 × 3–5 fast, Thursday Calmach at full volume with max-height emphasis, about 500 jump contacts. Pre-season guard conditioning twice a week (Wed after speed + Sat). Week 16 taper and Day 3 retest.</td></tr>';
+    html += '<tr class="p2"><td>1 Hypertrophy</td><td>1–6</td><td>Full gym days, main lifts 4 × 6–8, accessories in the 8–15 range, Full Thursday Calmach from week 1, denser Friday jumps, 7–9 lift exercises, and about 530–550 jump contacts. Saturday light guard conditioning only. Weeks 1–2 calibration. Week 6 deload. Target 1–2 RIR on the last set.</td></tr>';
+    html += '<tr class="p3"><td>2 Strength</td><td>7–11</td><td>Main lifts 4 × 4–6 heavier, still not a max. Accessories stay in a muscle-gain range. Thursday stays on the full Calmach routine with full rest. About 530–550 jump contacts. Saturday light guard conditioning only. Week 11 deload.</td></tr>';
+    html += '<tr class="p4"><td>3 Power</td><td>12–16</td><td>Main lifts 3 × 3–5 fast, Thursday Calmach at full volume with a 4th power-jump set allowed, about 530–550 jump contacts. Pre-season guard conditioning twice a week (Wed after speed + Sat). Week 16 taper and Day 3 retest.</td></tr>';
     html += "</tbody></table></div>";
 
     html += '<div class="card"><h2>How to add load</h2><p>' + escapeHtml(SUGGEST_NOTE) + "</p>";
     html += "<p>" + escapeHtml(LOAD_RULE) + "</p>";
-    html += "<p>Raise Calmach tension only when landings stay quiet. " + escapeHtml(STOP_LOUD) + "</p>";
+    html += "<p>Raise Calmach tension only when landings stay quiet. " + escapeHtml(STOP_LOUD) + " " + escapeHtml(HOME_PAIN_NOTE) + "</p>";
     html += "<p class=\"cue\">Tempo is written as down-pause-up-pause, in seconds. A 3-0-1-0 squat takes 3 seconds to lower and 1 second to stand, with no pause.</p></div>";
 
     html += '<div class="card"><h2>Why this works</h2>';
@@ -3047,16 +3071,18 @@
     html += '<div class="card"><h2>Cooldown (every training day)</h2>' + renderSteps(COOLDOWN) + '<p class="cue">On recovery days, use these stretches with 45–60 second holds.</p></div>';
 
     html += '<div class="card"><h2>Blake’s Calmach routine</h2>';
-    html += "<p>Thursday is the hard home jump day. The full routine is: Resisted Pogo Vertical Jumps 3 × 10 (minimal ground time); Resisted Vertical Power Jumps 3 × 10 (jump as high as you can each time); Resisted Single-Leg Jumps 2 × 10 each (power off one foot for layups and dunks); Resisted Lunge Jumps 3 × 10 (5 each leg); Resisted Knee Hop Jumps 10 total; Resisted High Knees countdown 10s down to 1s with short rest; and Resisted Step-Ups on a chair 3 × 10 each leg.</p>";
-    html += "<p>Hypertrophy (weeks 1–6): 2 sets on most, single-leg jumps 2 × 6 each, and keep the countdown high knees and step-ups. Strength (weeks 7–11): build toward the full prescription, with full rest between jump sets. Power (weeks 12–16): the full routine, with max-height emphasis and full rest. Weeks 6, 11, and 16 are about half. Friday is always light: pogos 2 × 10, vertical power jumps 2 × 5 at quality, and step-ups 2 × 8 each (half on deload and taper weeks).</p>";
+    html += "<p>Thursday is the hard home jump day, and Blake runs his full routine from week 1 in every phase: Resisted Pogo Vertical Jumps 3 × 10 (minimal ground time); Resisted Vertical Power Jumps 3 × 10 (jump as high as you can each time; a 4th set is allowed in weeks 12–15 if landings stay quiet); Resisted Single-Leg Jumps 2 × 10 each (power off one foot for layups and dunks); Resisted Lunge Jumps 3 × 10 (5 each leg); Resisted Knee Hop Jumps 10 total; Resisted High Knees countdown 10s down to 1s with short rest; and Resisted Step-Ups on a chair 3 × 10 each leg.</p>";
+    html += "<p>Friday: pogos 3 × 10, vertical power jumps 3 × 6, and step-ups 3 × 8 each. Weeks 6, 11, and 16 are about 60% volume. " + escapeHtml(HOME_PAIN_NOTE) + "</p>";
     html += "<p>Raise Calmach tension only when landings stay quiet. " + escapeHtml(STOP_LOUD) + "</p></div>";
 
     html += '<div class="card"><h2>Guard conditioning</h2>';
     html += "<p>This stays light in weeks 1–11 because of AAU: one short session on Saturday only (~10–12 minutes), 3–4 rounds of full-court defensive zig-zag slides and sprint-backpedal-slide (baseline → FT → half → far FT → baseline), plus one timed 17s (sideline-to-sideline × 17, target under 60 seconds, rest 2:00). " + escapeHtml(AAU_SKIP) + "</p>";
     html += "<p>Weeks 12–16 are a pre-season ramp: two sessions a week (Wednesday after speed work, and Saturday), with 3–4 timed 17s and game-like court interval bursts. Week 16 is about half. Keep it off Monday and Tuesday evenings. Log 17s times and rounds in the session, and log a 17s test in Tests at weeks 4, 8, 12, and 16.</p></div>";
 
-    html += '<div class="card"><h2>Sauna and recovery</h2>';
-    html += "<p>Sauna is 10–15 minutes, 3–4 times a week. Best on gym-lifting evenings (Monday, Tuesday, or Wednesday), paired with boots. Never right before practice or games. Drink 16–20 oz of water before and after. " + escapeHtml(SAUNA_NOTE) + " If you do both the sauna and a plunge on a non-lifting day, finish with the plunge. Log minutes on the Recovery page.</p></div>";
+    html += '<div class="card"><h2>Sauna, boots, and plunge</h2>';
+    html += "<p>Sauna is 10–15 minutes, 3–4 times a week. Best on gym-lifting evenings (Monday, Tuesday, or Wednesday), paired with Anaconda compression boots. Never right before practice or games. Drink 16–20 oz of water before and after. " + escapeHtml(SAUNA_NOTE) + "</p>";
+    html += "<p>Anaconda boots are 20–30 minutes on any evening. On lifting days the Recovery page says “Sauna + boots tonight, no plunge.”</p>";
+    html += "<p>Cold plunge is 50–59°F for 2–5 minutes (start at 2 minutes), only on Thursday, Friday, Saturday, or after a game or hard practice — not within about 6 hours after gym lifting. " + escapeHtml(PLUNGE_NOTE) + " If you do both the sauna and a plunge on a non-lifting day, finish with the plunge. Log minutes on the Recovery page.</p></div>";
 
     html += '<div class="card"><h2>Eat to gain muscle</h2>';
     html += "<p>This is a whole-food plan for adding muscle, not a cut. Eat three meals and two snacks every day, including rest days, and drink water through the day. Sleep 8–10 hours; it is part of the work. If bodyweight is not up about 0.5 to 1 lb after two weeks, add a snack or bigger portions. If it is climbing much faster and you feel heavy, hold portions steady.</p>";
@@ -3366,7 +3392,11 @@
       html += '<label class="field">Bodyweight (lb)<input type="number" inputmode="decimal" step="0.1" min="0" data-act="daily-bw" value="' + escapeHtml(daily.bw || "") + '" placeholder="140"></label>';
       html += '<label class="field">Sleep (hours)<input type="number" inputmode="decimal" step="0.1" min="0" max="24" data-act="daily-sleep" value="' + escapeHtml(daily.sleep || "") + '" placeholder="8–10"></label>';
       html += "</div>";
+      if (isLiftEvening(state.day)) html += '<p class="callout">Sauna + boots tonight, no plunge.</p>';
+      if (plan.location === "home") html += '<p class="callout">' + escapeHtml(HOME_PAIN_NOTE) + "</p>";
       html += '<label class="field" style="margin-top:8px">Sauna (minutes)<input type="number" inputmode="numeric" min="0" step="1" data-act="daily-sauna" value="' + escapeHtml(daily.sauna || "") + '" placeholder="10–15"></label>';
+      html += '<label class="field" style="margin-top:8px">Boots (minutes)<input type="number" inputmode="numeric" min="0" step="1" data-act="daily-boots" value="' + escapeHtml(daily.boots || "") + '" placeholder="20–30"></label>';
+      if (plungeDay(state.day) || state.day === "7") html += '<label class="field" style="margin-top:8px">Plunge (minutes)<input type="number" inputmode="decimal" min="0" step="0.5" data-act="daily-plunge" value="' + escapeHtml(daily.plunge || "") + '" placeholder="2–5"></label>';
       var hasLoaded = (plan.exercises || []).some(function (e) { return !e.noLoad; });
       if (hasLoaded) html += '<p class="suggest-note">' + escapeHtml(SUGGEST_NOTE) + "</p>";
       html += "</div>";
@@ -3733,12 +3763,14 @@
       persist();
       return;
     }
-    if (act === "daily-bw" || act === "daily-sleep" || act === "daily-sauna") {
+    if (act === "daily-bw" || act === "daily-sleep" || act === "daily-sauna" || act === "daily-boots" || act === "daily-plunge" || act === "daily-boots" || act === "daily-plunge") {
       var dk = dailyKey();
-      var dr = state.daily[dk] || { bw: "", sleep: "", sauna: "" };
+      var dr = state.daily[dk] || { bw: "", sleep: "", sauna: "", boots: "", plunge: "" };
       if (act === "daily-bw") dr.bw = t.value;
       else if (act === "daily-sleep") dr.sleep = t.value;
-      else dr.sauna = t.value;
+      else if (act === "daily-sauna") dr.sauna = t.value;
+      else if (act === "daily-boots") dr.boots = t.value;
+      else dr.plunge = t.value;
       state.daily[dk] = dr;
       persist();
       return;
