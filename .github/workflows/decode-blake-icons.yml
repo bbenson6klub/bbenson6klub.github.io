@@ -1,9 +1,5 @@
 name: Decode Blake trainer icons
 on:
-  push:
-    paths:
-      - "bb-train-144d6d31ad7a/icon-src/**"
-      - ".github/workflows/decode-blake-icons.yml"
   workflow_dispatch:
 permissions:
   contents: write
@@ -36,4 +32,5 @@ jobs:
             exit 0
           fi
           git commit -m "Add rendered basketball-dumbbell icon PNGs"
+          git pull --rebase origin main
           git push
