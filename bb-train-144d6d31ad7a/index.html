@@ -337,6 +337,11 @@
     .tag-handles { background: var(--cat-handles); color: #1a0820; }
     .tag-conditioning { background: var(--cat-conditioning); color: #041016; }
     .tag-recovery { background: var(--cat-recovery); color: #111827; }
+    .tag-gym { background: #e8a04a; color: #1a0e02; }
+    .tag-home { background: #2dd4bf; color: #04211c; }
+    .tag-court { background: #93c5fd; color: #0b1a2c; }
+    .tag-rest { background: #94a3b8; color: #0f172a; }
+    .loc-tag { letter-spacing: 0.06em; text-transform: uppercase; }
     .session-bar {
       margin: 10px 0 0;
     }
@@ -506,7 +511,7 @@
     <label class="field">Day
       <select id="day-select"></select>
     </label>
-    <label class="field span-2">Start date
+    <label class="field span-2">Start date (use a Monday)
       <input type="date" id="start-date" value="">
     </label>
   </div>
@@ -533,13 +538,13 @@
 
   var WEEKS = ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16"];
   var DAYS = [
-    { id: "1", label: "Day 1 · Lower + jumps" },
-    { id: "2", label: "Day 2 · Shoot + upper" },
-    { id: "3", label: "Day 3 · Recovery" },
-    { id: "4", label: "Day 4 · Strength + speed" },
-    { id: "5", label: "Day 5 · Shoot + core" },
-    { id: "6", label: "Day 6 · Easy aerobic / shooting" },
-    { id: "7", label: "Day 7 · Full rest" }
+    { id: "1", label: "Day 1 · Mon · Gym lower" },
+    { id: "2", label: "Day 2 · Tue · Gym upper + shoot" },
+    { id: "3", label: "Day 3 · Wed · Speed" },
+    { id: "4", label: "Day 4 · Thu · Home jumps" },
+    { id: "5", label: "Day 5 · Fri · Home jumps (light)" },
+    { id: "6", label: "Day 6 · Sat · Easy aerobic / shoot" },
+    { id: "7", label: "Day 7 · Sun · Full rest" }
   ];
 
   var BASELINE = { id: "baseline", date: "Baseline", weight: 140, feet: 5, inches: 10 };
@@ -569,7 +574,7 @@
     if (phase === "strength") {
       return "Main lifts are 4 × 4–6 and a bit heavier, still not a max. Keep hypertrophy accessories at 3 × 8–12 so muscle gain stays in the plan.";
     }
-    return "Main lifts are 3 × 3–5, fast and not maxed. Pair each strength set with a jump set. Keep one upper day at 3 × 8.";
+    return "Main lifts are 3 × 3–5, fast and not maxed. Power jumps are on the home days, not paired with gym lifts. Keep one upper day at 3 × 8.";
   }
 
   function weekMode(week) {
@@ -656,6 +661,18 @@
 
   function categoryTag(cat) {
     return '<span class="tag tag-' + cat + '">' + categoryLabel(cat) + "</span>";
+  }
+
+  function locationMeta(loc) {
+    if (loc === "gym") return { cat: "gym", label: "Gym" };
+    if (loc === "home") return { cat: "home", label: "Home" };
+    if (loc === "court") return { cat: "court", label: "Gym/Home court" };
+    return { cat: "rest", label: "Rest" };
+  }
+
+  function locationTag(loc) {
+    var m = locationMeta(loc);
+    return '<span class="tag tag-' + m.cat + ' loc-tag">' + m.label + "</span>";
   }
 
   function phaseChipName(phase) {
@@ -800,7 +817,7 @@
 
   function weeklyContactInfo(week) {
     var phase = phaseFor(week);
-    var total = contactSum(planFor(phase, "1", week).exercises || []) + contactSum(planFor(phase, "4", week).exercises || []);
+    var total = contactSum(planFor(phase, "1", week).exercises || []) + contactSum(planFor(phase, "4", week).exercises || []) + contactSum(planFor(phase, "5", week).exercises || []);
     var mode = weekMode(week);
     var phaseTarget = phase === "foundation" ? "60–100" : (phase === "hypertrophy" ? "120–140" : "140–160");
     var note;
@@ -818,33 +835,40 @@
     var p1 = phase === "foundation";
     var p2 = phase === "hypertrophy";
     var p3 = phase === "strength";
-    var exercises, jumps, agility, conditioning, title, focus, recovery;
+    var exercises, jumps, agility, conditioning, title, focus, recovery, handles, upper, skill, core, primer;
+
+    primer = plyo("primer", "Box jump or countermovement jump (primer)", 2, "3", 3, "Full reset, at least 60 seconds", "Two easy sets of 3 only — a gym primer, not a plyo session. No Calmach. Stick quiet landings. " + STOP_LOUD);
+
+    function homeHandles() {
+      var h;
+      if (p1) h = ex("handles", "Ball handling rounds", deload ? 1 : 2, "5 moves × 30 seconds", "30 seconds between rounds", "Smooth and low, not rushed", "Each round: pound right 30s, pound left 30s, crossover 30s, between the legs 30s, behind the back 30s. Eyes up.", "Do not add moves until the eyes stay up.");
+      else if (p2 || p3) h = ex("handles", "Ball handling rounds", deload ? 2 : 3, "two-ball + hesitation + speed changes", "45 seconds between rounds", "Game rhythm, eyes up", "Each round: two-ball pounds 30s, hesitation into a crossover each hand 30s, then two full-court speed changes.", "Add a chair only when the ball stays tight.");
+      else h = ex("handles", "Pressure handles", taper ? 2 : 3, "chair or cone attacks, both hands", "45–60 seconds between rounds", "Game pace", "Each round: attack, retreat, and change pace. Finish with both hands.", "Speed and control are the progress, not more drills.");
+      h.noLoad = true;
+      return h;
+    }
 
     if (day === "1") {
-      title = "Lower body, unresisted plyos, and a little speed";
-      focus = "Main lower lift, split squats, quiet landings, Calmach, and a short sprint session.";
+      title = "Gym lower body";
+      focus = "Heavy lower-body strength at the gym. Only a brief 2 × 3 jump primer — no Calmach and no mixed plyo volume. Split squats and lunges stay here with the main lift.";
       if (p1) {
         if (deload) {
           exercises = [
             ex("squat", "Goblet squat (or bodyweight squat)", 2, "8–10", "2 minutes", "3-0-1-0", "Sit between your heels, chest tall, knees track over toes.", LOAD_RULE),
             ex("split", "Split squat", 2, "8 each leg", "90 seconds after both legs", "2-1-1-0", "Front heel stays down. Drop the back knee straight down.", LOAD_RULE),
             ex("hinge", "Hip hinge or light Romanian deadlift", 2, "8–10", "90 seconds", "3-0-1-0", "Push the hips back, soft knees, spine long.", LOAD_RULE),
-            plyo("pogo", "Pogo hops (landing practice)", 2, "8", 8, "45–60 seconds", "Stiff-ish ankles, quiet feet, small elastic bounces. " + STOP_LOUD),
-            plyo("cmj", "Countermovement jump (landing practice)", 2, "5", 5, "60–90 seconds", "Jump, then stick a quiet athletic landing. " + STOP_LOUD),
-            sprintEx("sprint", "Short sprints (a little speed)", 2, "10–20 yards", "Walk back — do not rush the next rep", "Easy-to-fast build, tall posture. Walk back every time.")
+            ex("lunge", "Walking lunge", 2, "8 each leg", "90 seconds", "Controlled, even steps", "Short steps, front knee over the midfoot, torso tall.", LOAD_RULE),
+            primer
           ];
-          jumps = calmachBlock(2, 4, "Deload volume.");
         } else {
           exercises = [
             ex("squat", "Goblet squat (or bodyweight squat)", 3, "8–10", "2 minutes", "3-0-1-0 (3 seconds down, stand in 1 second)", "Sit between your heels, chest tall, knees track over toes.", "Stay with bodyweight until all 3 × 8–10 are clean, then a light goblet hold. " + LOAD_RULE),
             ex("split", "Split squat", 3, "8 each leg", "90 seconds after both legs", "2-1-1-0", "Front heel stays down. Drop the back knee straight down and keep the torso quiet.", "Bodyweight first. Add light dumbbells only when the front heel never pops up. " + LOAD_RULE),
             ex("hinge", "Hip hinge or light Romanian deadlift", 3, "8–10", "90 seconds", "3-0-1-0", "Push the hips back, soft knees, spine long. Squeeze the glutes to stand.", "Use a dowel or very light dumbbells until the back stays long. " + LOAD_RULE),
             ex("bridge", "Glute bridge", 3, "10", "60 seconds", "1-second squeeze at the top", "Ribs down, squeeze the glutes, do not arch the low back.", "No load until the low back stays quiet."),
-            plyo("pogo", "Pogo hops (landing practice)", 3, "8", 8, "45–60 seconds", "Stiff-ish ankles, quiet feet, small elastic bounces. " + STOP_LOUD),
-            plyo("cmj", "Countermovement jump (landing practice)", 3, "5", 5, "60–90 seconds", "Dip, jump, and stick a quiet athletic landing. " + STOP_LOUD),
-            sprintEx("sprint", "Short sprints (a little speed)", 3, "10–20 yards", "Walk back — do not rush the next rep", "Build up to a fast, tall sprint. Walk back every time. This is a short dose; the main speed work is on Day 4.")
+            ex("lunge", "Walking lunge", 3, "8–10 each leg", "90 seconds", "Controlled, even steps", "Short steps, front knee tracks over the midfoot, torso tall. Bodyweight first.", "Add light dumbbells only when both sides look the same. " + LOAD_RULE),
+            primer
           ];
-          jumps = calmachBlock(3, 5, "Light to moderate only.");
         }
       } else if (p2) {
         if (deload) {
@@ -852,25 +876,17 @@
             ex("trapbar", "Trap-bar deadlift (or front squat)", 2, "6–8", "2–3+ minutes", "Controlled down, smooth stand", "Choose one main lift and keep it for the block. Neutral spine, full stand. Stop if bar speed drops.", LOAD_RULE),
             ex("split", "Split squat", 2, "8–12 each leg", "90 seconds after both legs", "2-1-1-0", "Front heel down, torso quiet.", LOAD_RULE),
             ex("hangpull", "Hang jump shrug or hang high pull", 2, "3–5", "2 minutes", "Fast, tight finish", HANG_NOTE, HANG_NOTE + " " + LOAD_RULE),
-            plyo("pogo", "Pogo hops", 2, "5", 5, "45–60 seconds", "Small, quiet, elastic. " + STOP_LOUD),
-            plyo("cmj", "Countermovement jump", 2, "5", 5, "90 seconds", "Crisp jump, quiet landing. " + STOP_LOUD),
-            plyo("broad", "Broad jump", 2, "5", 5, "90 seconds", "Stick the landing, then reset. " + STOP_LOUD),
-            plyo("slhop", "Single-leg hops", 2, "4 each leg", 8, "60–90 seconds", "Short hops, hips level, quiet foot. " + STOP_LOUD),
-            sprintEx("sprint", "Short sprints (a little speed)", 3, "10–20 yards", "At least 90 seconds, or a slow walk back", "Tall, fast, and complete. Rest at least 90 seconds.")
+            ex("lunge", "Walking lunge", 2, "8–12 each leg", "90 seconds", "Controlled, even steps", "Torso tall, even sides.", LOAD_RULE),
+            primer
           ];
-          jumps = calmachBlock(2, 4, "Deload volume.");
         } else {
           exercises = [
             ex("trapbar", "Trap-bar deadlift (or front squat)", 4, "6–8", "2–3+ minutes", "Controlled down, smooth stand", "This is the main lower lift. Use a trap-bar deadlift, or a front squat if that is the better-coached option. Keep the same choice for the block. Neutral spine, complete every stand. Stop the set if bar speed drops.", LOAD_RULE),
             ex("split", "Split squat", 3, "8–12 each leg", "90 seconds after both legs", "2-1-1-0", "Front heel down, torso quiet, back knee drops straight down.", "Accessory volume. " + LOAD_RULE),
             ex("hangpull", "Hang jump shrug or hang high pull", 3, "3–5", "2 minutes", "Fast, tight finish from the hang", HANG_NOTE, HANG_NOTE + " Do not chase load. " + LOAD_RULE),
-            plyo("pogo", "Pogo hops", 3, "5", 5, "45–60 seconds", "Small, quiet, elastic contacts. " + STOP_LOUD),
-            plyo("cmj", "Countermovement jump", 3, "5", 5, "90 seconds", "Crisp jumps, full reset, quiet landings. " + STOP_LOUD),
-            plyo("broad", "Broad jump", 3, "5", 5, "90 seconds", "Jump out, stick the landing, walk back. " + STOP_LOUD),
-            plyo("slhop", "Single-leg hops", 3, "4 each leg", 8, "60–90 seconds", "Short hops, hips level, quiet foot. " + STOP_LOUD),
-            sprintEx("sprint", "Short sprints (a little speed)", 4, "10–20 yards", "At least 90 seconds, or a slow walk back", "Tall and fast. Rest at least 90 seconds. The larger speed session is on Day 4.")
+            ex("lunge", "Walking lunge", 3, "8–12 each leg", "90 seconds", "Controlled, even steps", "Accessory single-leg work. Torso tall, even sides.", LOAD_RULE),
+            primer
           ];
-          jumps = calmachBlock(3, 5, "Keep tension light to moderate.");
         }
       } else if (p3) {
         if (deload) {
@@ -878,59 +894,41 @@
             ex("trapbar", "Trap-bar deadlift (or front squat)", 2, "4–6", "2–3+ minutes", "Controlled down, strong stand", "Heavier strength work, deload volume. Stop if bar speed drops. Not a 1RM day.", LOAD_RULE),
             ex("split", "Split squat", 2, "8–12 each leg", "90 seconds after both legs", "2-1-1-0", "Hypertrophy accessory. Front heel down, torso quiet.", LOAD_RULE),
             ex("hangpull", "Hang jump shrug or hang high pull", 2, "3–5", "2 minutes", "Fast, tight finish from the hang", HANG_NOTE, HANG_NOTE + " " + LOAD_RULE),
-            plyo("pogo", "Pogo hops", 2, "5", 5, "45–60 seconds", "Small, quiet, elastic. " + STOP_LOUD),
-            plyo("cmj", "Countermovement jump", 2, "5", 5, "90 seconds", "Crisp jump, quiet landing. " + STOP_LOUD),
-            plyo("broad", "Broad jump", 2, "5", 5, "90 seconds", "Stick the landing, then reset. " + STOP_LOUD),
-            plyo("slhop", "Single-leg hops", 2, "4 each leg", 8, "60–90 seconds", "Short hops, hips level. " + STOP_LOUD),
-            sprintEx("sprint", "Short sprints (a little speed)", 3, "10–20 yards", "At least 90 seconds, or a slow walk back", "Tall and fast. Rest at least 90 seconds. Deload volume.")
+            ex("lunge", "Walking lunge", 2, "8–12 each leg", "90 seconds", "Controlled, even steps", "Hypertrophy accessory, deload volume.", LOAD_RULE),
+            primer
           ];
-          jumps = calmachBlock(2, 4, "Deload volume.");
         } else {
           exercises = [
             ex("trapbar", "Trap-bar deadlift (or front squat)", 4, "4–6", "2–3+ minutes", "Controlled down, strong stand", "This is the heavier strength block. Use a trap-bar deadlift or front squat, the same choice as Phase 2. Add load only after two clean sessions. Stop the set if bar speed drops. Not a 1RM day.", LOAD_RULE),
             ex("split", "Split squat", 3, "8–12 each leg", "90 seconds after both legs", "2-1-1-0", "Keep this as hypertrophy accessory work so muscle gain stays in the plan.", LOAD_RULE),
             ex("hangpull", "Hang jump shrug or hang high pull", 3, "3–5", "2 minutes", "Fast, tight finish from the hang", HANG_NOTE, HANG_NOTE + " Do not chase load. " + LOAD_RULE),
-            plyo("pogo", "Pogo hops", 3, "5", 5, "45–60 seconds", "Small, quiet, elastic contacts. " + STOP_LOUD),
-            plyo("cmj", "Countermovement jump", 3, "5", 5, "90 seconds", "Crisp jumps, full reset, quiet landings. " + STOP_LOUD),
-            plyo("broad", "Broad jump", 3, "5", 5, "90 seconds", "Jump out, stick the landing, walk back. " + STOP_LOUD),
-            plyo("slhop", "Single-leg hops", 3, "4 each leg", 8, "60–90 seconds", "Short hops, hips level, quiet foot. " + STOP_LOUD),
-            sprintEx("sprint", "Short sprints (a little speed)", 6, "10–20 yards", "At least 90 seconds, or a slow walk back", "Tall and fast. Rest at least 90 seconds. The larger speed session is on Day 4.")
+            ex("lunge", "Walking lunge", 3, "8–12 each leg", "90 seconds", "Controlled, even steps", "Keep single-leg hypertrophy work at 3 × 8–12 in this strength block.", LOAD_RULE),
+            primer
           ];
-          jumps = calmachBlock(3, 5, "Keep tension light to moderate.");
         }
       } else if (taper) {
         exercises = [
-          ex("trapbar", "Trap-bar deadlift (or front squat)", 2, "3", "2–3+ minutes", "Fast but comfortable, not a max", "Crisp, easy bar speed. This is taper work, not a heavy day.", "Do not add load this week. Leave a lot in the tank."),
-          plyo("cmjpair", "Contrast countermovement jump (after each main-lift set)", 2, "3", 3, "After the lift, then full reset", "After each main-lift set, do 3 crisp unresisted jumps. " + STOP_LOUD),
-          plyo("pogo", "Pogo hops", 2, "4", 4, "45–60 seconds", "Easy, quiet contacts. " + STOP_LOUD),
-          plyo("broad", "Broad jump", 1, "4", 4, "90 seconds", "Quality only. " + STOP_LOUD),
-          sprintEx("sprint", "Build-up sprints", 3, "10–20 yards, about 80–90%", "At least 90 seconds", "Build-ups only. Save a timed 10–20 yard sprint for the Day 4 retest.")
+          ex("trapbar", "Trap-bar deadlift (or front squat)", 2, "3", "2–3+ minutes", "Fast but comfortable, not a max", "Crisp, easy bar speed. This is taper work, not a heavy day.", "Do not add load this week."),
+          ex("split", "Split squat", 2, "6–8 each leg", "90 seconds after both legs", "Controlled, smooth", "Keep quality high. This is not a max lower day.", "Do not add load this week."),
+          ex("lunge", "Walking lunge", 2, "6–8 each leg", "90 seconds", "Controlled, smooth", "Quality single-leg work, not a grind.", "Do not add load this week."),
+          primer
         ];
-        jumps = calmachBlock(2, 3, "Taper volume. Easy, quiet jumps.");
-        focus = "Taper: light strength, a few crisp jumps, and build-up sprints. Official retest is on Day 4.";
       } else {
         exercises = [
-          ex("trapbar", "Trap-bar deadlift (or front squat)", 3, "3–5", "2–3+ minutes", "Fast stand, not a grind and not a max", "Main lower lift, moved quickly with clean positions. Stop the set if bar speed drops. Do not max out.", "Keep it snappy, not heavy. " + LOAD_RULE),
-          plyo("cmjpair", "Contrast countermovement jump (after each main-lift set)", 3, "5", 5, "After the lift, then a full reset", "Pair each strength set with a jump set: rest as needed after the lift, then 5 crisp unresisted jumps. " + STOP_LOUD),
+          ex("trapbar", "Trap-bar deadlift (or front squat)", 3, "3–5", "2–3+ minutes", "Fast stand, not a grind and not a max", "Main lower lift, moved quickly with clean positions. Stop the set if bar speed drops. Power jumps are on the home days, not paired here after heavy sets.", LOAD_RULE),
           ex("split", "Split squat", 3, "6–8 each leg", "90 seconds after both legs", "Controlled, smooth", "Keep quality high. This is not a max lower day.", LOAD_RULE),
           ex("hangpull", "Hang jump shrug or hang high pull", 3, "3–5", "2 minutes", "Fast, tight finish from the hang", HANG_NOTE, HANG_NOTE + " " + LOAD_RULE),
-          plyo("pogo", "Pogo hops", 3, "5", 5, "45–60 seconds", "Elastic and quiet. " + STOP_LOUD),
-          plyo("broad", "Broad jump", 3, "5", 5, "90 seconds", "Stick the landing, full reset. " + STOP_LOUD),
-          plyo("slhop", "Single-leg hops", 2, "5 each leg", 10, "60–90 seconds", "Short hops, hips level. " + STOP_LOUD),
-          sprintEx("sprint", "Short sprints (a little speed)", 6, "10–20 yards", "At least 90 seconds", "Tall and fast. Rest at least 90 seconds. The larger speed session is on Day 4.")
+          ex("lunge", "Walking lunge", 3, "6–8 each leg", "90 seconds", "Controlled, smooth", "Quality single-leg work, not a grind.", LOAD_RULE),
+          primer
         ];
-        jumps = calmachBlock(3, 4, "Keep tension light to moderate.");
       }
-      return { title: title, focus: focus, kind: "train", exercises: exercises, jumps: jumps };
+      return { title: title, focus: focus, kind: "train", location: "gym", exercises: exercises };
     }
 
     if (day === "2") {
-      title = "Apex shooting + handles + upper body";
-      focus = "Shooting, ball control, and a loaded press plus a hard pull — both stay in the week all 16 weeks.";
-      var handles, upper;
+      title = "Gym upper body + shooting";
+      focus = "A loaded press plus a hard pull at the gym, then Apex shooting (Gym/Home court — use whichever court you have). Both the press and the pull stay in the week all 16 weeks.";
       if (p1) {
-        handles = ex("handles", "Ball handling rounds", deload ? 1 : 2, "5 moves × 30 seconds", "30 seconds between rounds", "Smooth and low, not rushed", "Each round: pound right 30s, pound left 30s, crossover 30s, between the legs 30s, behind the back 30s. Eyes up.", "Do not add moves until the eyes stay up.");
-        handles.noLoad = true;
         upper = [
           ex("press", "Loaded shoulder press or bench / floor press", deload ? 2 : 3, "8–10", "2 minutes", "2-0-1-0", "A loaded press stays in the program all 16 weeks. Ribs down, controlled lower. Use dumbbells, a bar, or a backpack-loaded push-up if that is what you have.", LOAD_RULE),
           ex("row", "Hard pull: row or assisted chin-up / pull-up", deload ? 2 : 3, "8–10", "2 minutes", "2-1-2-0 (1-second squeeze)", "A hard pull stays in the program all 16 weeks. Squeeze the shoulder blades and do not shrug.", LOAD_RULE),
@@ -938,8 +936,6 @@
         ];
         upper[2].noLoad = true;
       } else if (p2) {
-        handles = ex("handles", "Ball handling rounds", deload ? 2 : 3, "two-ball + hesitation + speed changes", "45 seconds between rounds", "Game rhythm, eyes up", "Each round: two-ball pounds 30s, hesitation into a crossover each hand 30s, then two full-court speed changes.", "Add a chair only when the ball stays tight.");
-        handles.noLoad = true;
         upper = [
           ex("press", "Loaded shoulder press or bench / floor press", deload ? 2 : 4, "6–8", "2–3+ minutes", "2-0-1-0", "Main upper press. Ribs down. Stop if you lean back to finish the rep.", LOAD_RULE),
           ex("row", "Hard pull: row or chin-up / pull-up", deload ? 2 : 4, "6–8", "2–3+ minutes", "2-1-2-0", "Hard pull. Quiet neck and torso. Leave one clean rep if bar speed drops.", LOAD_RULE),
@@ -947,16 +943,12 @@
         ];
         if (deload) upper[2].sets = 2;
       } else if (p3) {
-        handles = ex("handles", "Ball handling rounds", deload ? 2 : 3, "two-ball + hesitation + speed changes", "45 seconds between rounds", "Game rhythm, eyes up", "Each round: two-ball pounds 30s, hesitation into a crossover each hand 30s, then two full-court speed changes.", "Add a chair only when the ball stays tight.");
-        handles.noLoad = true;
         upper = [
           ex("press", "Loaded shoulder press or bench / floor press", deload ? 2 : 3, "8–12", "90 seconds to 2 minutes", "2-0-1-0", "Hypertrophy accessory press — keep the 3 × 8–12 muscle-gain work in this strength block. Ribs down.", deload ? "Deload volume. " + LOAD_RULE : LOAD_RULE),
           ex("row", "Hard pull: row or chin-up / pull-up", deload ? 2 : 3, "8–12", "90 seconds to 2 minutes", "2-1-2-0", "Hypertrophy accessory pull at 3 × 8–12. Quiet neck and torso.", deload ? "Deload volume. " + LOAD_RULE : LOAD_RULE),
           ex("hollow", "Hollow hold or push-up accessory", deload ? 2 : 3, "8–12 or 25 seconds", "45–60 seconds", "Steady brace", "If you use a hold, keep the low back down. If you use push-ups, stay at 3 × 8–12 clean reps.", "Accessory work. Stop before form fades.")
         ];
       } else {
-        handles = ex("handles", "Pressure handles", taper ? 2 : 3, "chair or cone attacks, both hands", "45–60 seconds between rounds", "Game pace", "Each round: attack, retreat, and change pace. Finish with both hands.", "Speed and control are the progress, not more drills.");
-        handles.noLoad = true;
         upper = [
           ex("press", "Loaded shoulder press or bench / floor press", taper ? 2 : 3, "8", "2 minutes", "2-0-1-0, smooth", "This is the 3 × 8 upper day in Phase 4 (2 × 8 in the taper week). Keep the press clean, not heavy.", taper ? "Do not add load this week." : LOAD_RULE),
           ex("row", "Hard pull: row or chin-up / pull-up", taper ? 2 : 3, "8", "2 minutes", "2-1-2-0", "Stay at 3 × 8 (2 × 8 in the taper). Strong squeeze, no shrug.", taper ? "Do not add load this week." : LOAD_RULE),
@@ -964,161 +956,228 @@
         ];
         upper[2].noLoad = true;
       }
-      return { title: title, focus: focus, kind: "train", exercises: [handles].concat(upper), shooting: { intro: shootingIntro(phase, "2"), spots: spots(phase, "2") } };
+      return { title: title, focus: focus, kind: "train", location: "gym", exercises: upper, shooting: { intro: shootingIntro(phase, "2"), spots: spots(phase, "2"), place: "court" } };
     }
 
     if (day === "3") {
-      recovery = "Walk or easy bike 20–30 minutes at a talking pace, then spend extra time on the cooldown stretches (hold 45–60 seconds). Optional: 10 minutes of close form shooting, no fatigue work. Aim for about 9 hours of sleep and a full day of food, including the bedtime shake. Log bodyweight and sleep.";
-      if (taper) recovery += " This is retest week: keep the legs fresh for the Day 4 tests.";
-      return { title: "Recovery", focus: "Easy movement, mobility, and extra food and sleep.", kind: "recovery", exercises: [], recovery: recovery };
+      title = taper ? "Taper and retest" : "Speed";
+      focus = taper
+        ? "After the warm-up, retest standing and approach jump reach, bodyweight, and a timed 10–20 yard sprint. Then keep any remaining work easy. This is a test day, not a max-lift day."
+        : "The week’s speed work, on fresh legs — 48 hours after gym lower, and before the hard home jump day. Full rest between reps so each sprint is fast.";
+      agility = "Full rest (at least 90 seconds, or a walk back) so each sprint and cut is fast. This is speed, not conditioning.";
+      if (taper) {
+        exercises = [
+          sprintEx("sprint", "Build-up sprints", 3, "10–20 yards, about 80–90%", "At least 90 seconds", "Build-ups only if the retest is already done and the legs still feel crisp. Do not chase a new top speed after the test.")
+        ];
+        return { title: title, focus: focus, kind: "train", location: "court", exercises: exercises, agility: agility, retest: true };
+      }
+      if (p1) {
+        exercises = [
+          sprintEx("sprint", "Short sprints", deload ? 5 : 9, "10–20 yards", "Walk back — do not rush the next rep", deload ? "Deload volume. Walk back every time. Stay tall." : "The week’s speed in one session: 6–10 × 10–20 yards (9 today). Build up to a fast, tall sprint. Walk back every time. Stop if form or speed drops.")
+        ];
+        agility = "Walk-back recovery on every sprint. This is teaching speed, not conditioning.";
+      } else if (p2) {
+        exercises = [
+          sprintEx("sprint", "Short sprints", deload ? 8 : 14, "10–20 yards", "At least 90 seconds", deload ? "Deload volume. Rest at least 90 seconds." : "The week’s speed in one session (14 today). Rest at least 90 seconds. Stop if speed drops."),
+          sprintEx("cod", "Change-of-direction reps", deload ? 2 : 4, "1 short shuttle or 5-10-5", "At least 90 seconds", deload ? "Sharp cuts, then a full rest. Deload volume." : "4 quality COD reps. Sharp cuts, then a full rest of at least 90 seconds.")
+        ];
+      } else {
+        exercises = [
+          sprintEx("sprint", "Short sprints", deload ? 8 : 16, "10–20 yards", "At least 90 seconds", deload ? "Deload volume. Rest at least 90 seconds." : "The week’s speed in one session: up to 10–16 × 10–20 yards (16 today). Rest at least 90 seconds. Stop if speed drops."),
+          sprintEx("cod", "Change-of-direction reps", deload ? 3 : 6, "1 short shuttle or 5-10-5", "At least 90 seconds", deload ? "Sharp cuts, then a full rest. Deload volume." : "4–6 quality COD reps (6 today). Sharp cuts, then a full rest of at least 90 seconds.")
+        ];
+      }
+      return { title: title, focus: focus, kind: "train", location: "court", exercises: exercises, agility: agility };
     }
 
     if (day === "4") {
-      title = "Strength, unresisted plyos, and speed";
-      focus = "A little single-leg strength, mixed unresisted jumps, Calmach, and the main sprint session.";
+      title = "Home jumps + Calmach + handles";
+      focus = "The harder home plyo day: mixed unresisted jumps and Calmach (about 20–30 minutes after a full warm-up), then ball handling. No gym lifts today.";
+      handles = homeHandles();
       if (p1) {
         if (deload) {
           exercises = [
-            ex("lunge", "Walking lunge", 2, "8 each leg", "90 seconds", "Controlled, even steps", "Short steps, front knee over the midfoot, torso tall.", LOAD_RULE),
-            plyo("pogo", "Pogo hops", 1, "8", 8, "45–60 seconds", "Quiet, small contacts. " + STOP_LOUD),
+            plyo("pogo", "Pogo hops", 2, "8", 8, "45–60 seconds", "Quiet, small contacts. " + STOP_LOUD),
             plyo("broad", "Broad jump (landing practice)", 2, "5", 5, "60–90 seconds", "Stick a quiet landing. " + STOP_LOUD),
             plyo("lateral", "Lateral bound", 1, "5 each side", 10, "60–90 seconds", "Bound, stick, reset. " + STOP_LOUD),
-            sprintEx("sprint", "Short sprints", 3, "10–20 yards", "Walk back — do not rush the next rep", "Main speed work, deload volume. Walk back every time.")
+            handles
           ];
           jumps = calmachBlock(2, 4, "Deload volume.");
         } else {
           exercises = [
-            ex("lunge", "Walking lunge", 3, "8–10 each leg", "90 seconds", "Controlled, even steps", "Short steps, front knee tracks over the midfoot, torso tall. Bodyweight first.", "Add light dumbbells only when both sides look the same. " + LOAD_RULE),
-            plyo("pogo", "Pogo hops", 2, "8", 8, "45–60 seconds", "Quiet, small, elastic contacts. " + STOP_LOUD),
+            plyo("pogo", "Pogo hops", 3, "8", 8, "45–60 seconds", "Quiet, small, elastic contacts. " + STOP_LOUD),
             plyo("broad", "Broad jump (landing practice)", 3, "5", 5, "60–90 seconds", "Jump out, stick a quiet landing, walk back. " + STOP_LOUD),
             plyo("lateral", "Lateral bound", 2, "5 each side", 10, "60–90 seconds", "Bound sideways, stick, reset. " + STOP_LOUD),
-            sprintEx("sprint", "Short sprints", 6, "10–20 yards", "Walk back — do not rush the next rep", "This is the main speed session: 6–10 × 10–20 yards with a walk-back. Stay tall. Stop if form or speed drops.")
+            handles
           ];
           jumps = calmachBlock(3, 5, "Pair these with the unresisted jumps above.");
         }
-        agility = "Walk-back recovery on every sprint. This is teaching speed, not conditioning.";
       } else if (p2) {
         if (deload) {
           exercises = [
-            ex("lunge", "Walking lunge", 2, "8–12 each leg", "90 seconds", "Controlled, even steps", "Torso tall, even sides.", LOAD_RULE),
-            plyo("pogo", "Pogo hops", 1, "5", 5, "45–60 seconds", "Quiet and elastic. " + STOP_LOUD),
-            plyo("cmj", "Countermovement jump", 1, "5", 5, "90 seconds", "Crisp jump, quiet landing. " + STOP_LOUD),
-            plyo("broad", "Broad jump", 1, "5", 5, "90 seconds", "Stick and reset. " + STOP_LOUD),
+            plyo("pogo", "Pogo hops", 2, "5", 5, "45–60 seconds", "Quiet and elastic. " + STOP_LOUD),
+            plyo("cmj", "Countermovement jump", 2, "5", 5, "90 seconds", "Crisp jump, quiet landing. " + STOP_LOUD),
+            plyo("broad", "Broad jump", 2, "5", 5, "90 seconds", "Stick and reset. " + STOP_LOUD),
             plyo("lateral", "Lateral bound", 1, "5 each side", 10, "90 seconds", "Bound, stick, reset. " + STOP_LOUD),
-            sprintEx("sprint", "Short sprints", 5, "10–20 yards", "At least 90 seconds", "Deload volume. Rest at least 90 seconds."),
-            sprintEx("cod", "Change-of-direction reps", 2, "1 short shuttle or 5-10-5", "At least 90 seconds", "Sharp cuts, then a full rest. Deload volume.")
+            plyo("slhop", "Single-leg hops", 1, "4 each leg", 8, "60–90 seconds", "Short hops, hips level. " + STOP_LOUD),
+            handles
           ];
           jumps = calmachBlock(2, 4, "Deload volume.");
         } else {
           exercises = [
-            ex("lunge", "Walking lunge", 3, "8–12 each leg", "90 seconds", "Controlled, even steps", "Accessory single-leg work. Torso tall, even sides.", LOAD_RULE),
-            plyo("pogo", "Pogo hops", 2, "5", 5, "45–60 seconds", "Quiet and elastic. " + STOP_LOUD),
-            plyo("cmj", "Countermovement jump", 3, "5", 5, "90 seconds", "Crisp jumps, full reset. " + STOP_LOUD),
-            plyo("broad", "Broad jump", 3, "5", 5, "90 seconds", "Stick the landing, walk back. " + STOP_LOUD),
-            plyo("lateral", "Lateral bound", 3, "5 each side", 10, "90 seconds", "Bound, stick, reset. " + STOP_LOUD),
-            sprintEx("sprint", "Short sprints", 10, "10–20 yards", "At least 90 seconds", "Main speed session: up to 10–16 × 10–20 yards on the week, most of them here. Rest at least 90 seconds. Stop if speed drops."),
-            sprintEx("cod", "Change-of-direction reps", 4, "1 short shuttle or 5-10-5", "At least 90 seconds", "4–6 quality COD reps. Sharp cuts, then a full rest of at least 90 seconds.")
-          ];
-          jumps = calmachBlock(3, 5, "Pair these with the unresisted jumps above.");
-        }
-        agility = "Full rest (at least 90 seconds) so each sprint and cut is fast.";
-      } else if (p3) {
-        if (deload) {
-          exercises = [
-            ex("lunge", "Walking lunge", 2, "8–12 each leg", "90 seconds", "Controlled, even steps", "Hypertrophy accessory, deload volume.", LOAD_RULE),
-            plyo("pogo", "Pogo hops", 1, "5", 5, "45–60 seconds", "Quiet and elastic. " + STOP_LOUD),
-            plyo("cmj", "Countermovement jump", 1, "5", 5, "90 seconds", "Crisp jump, quiet landing. " + STOP_LOUD),
-            plyo("broad", "Broad jump", 1, "5", 5, "90 seconds", "Stick and reset. " + STOP_LOUD),
-            plyo("lateral", "Lateral bound", 1, "5 each side", 10, "90 seconds", "Bound, stick, reset. " + STOP_LOUD),
-            sprintEx("sprint", "Short sprints", 5, "10–20 yards", "At least 90 seconds", "Deload volume. Rest at least 90 seconds."),
-            sprintEx("cod", "Change-of-direction reps", 3, "1 short shuttle or 5-10-5", "At least 90 seconds", "Sharp cuts, then a full rest. Deload volume.")
-          ];
-          jumps = calmachBlock(2, 4, "Deload volume.");
-        } else {
-          exercises = [
-            ex("lunge", "Walking lunge", 3, "8–12 each leg", "90 seconds", "Controlled, even steps", "Keep single-leg hypertrophy work at 3 × 8–12 in this strength block.", LOAD_RULE),
-            plyo("pogo", "Pogo hops", 2, "5", 5, "45–60 seconds", "Quiet and elastic. " + STOP_LOUD),
+            plyo("pogo", "Pogo hops", 3, "5", 5, "45–60 seconds", "Quiet and elastic. " + STOP_LOUD),
             plyo("cmj", "Countermovement jump", 3, "5", 5, "90 seconds", "Crisp jumps, full reset. " + STOP_LOUD),
             plyo("broad", "Broad jump", 3, "5", 5, "90 seconds", "Stick the landing, walk back. " + STOP_LOUD),
             plyo("lateral", "Lateral bound", 3, "5 each side", 10, "90 seconds", "Bound, stick, reset. " + STOP_LOUD),
             plyo("slhop", "Single-leg hops", 2, "4 each leg", 8, "60–90 seconds", "Short hops, hips level. " + STOP_LOUD),
-            sprintEx("sprint", "Short sprints", 10, "10–20 yards", "At least 90 seconds", "Main speed session: up to 10–16 × 10–20 yards on the week, most of them here. Rest at least 90 seconds. Stop if speed drops."),
-            sprintEx("cod", "Change-of-direction reps", 6, "1 short shuttle or 5-10-5", "At least 90 seconds", "4–6 quality COD reps (6 today). Sharp cuts, then a full rest of at least 90 seconds.")
+            handles
           ];
           jumps = calmachBlock(3, 5, "Pair these with the unresisted jumps above.");
         }
-        agility = "Full rest (at least 90 seconds) so each sprint and cut is fast.";
+      } else if (p3) {
+        if (deload) {
+          exercises = [
+            plyo("pogo", "Pogo hops", 2, "5", 5, "45–60 seconds", "Quiet and elastic. " + STOP_LOUD),
+            plyo("cmj", "Countermovement jump", 2, "5", 5, "90 seconds", "Crisp jump, quiet landing. " + STOP_LOUD),
+            plyo("broad", "Broad jump", 2, "5", 5, "90 seconds", "Stick and reset. " + STOP_LOUD),
+            plyo("lateral", "Lateral bound", 2, "5 each side", 10, "90 seconds", "Bound, stick, reset. " + STOP_LOUD),
+            plyo("slhop", "Single-leg hops", 1, "4 each leg", 8, "60–90 seconds", "Short hops, hips level. " + STOP_LOUD),
+            handles
+          ];
+          jumps = calmachBlock(2, 4, "Deload volume.");
+        } else {
+          exercises = [
+            plyo("pogo", "Pogo hops", 3, "5", 5, "45–60 seconds", "Quiet and elastic. " + STOP_LOUD),
+            plyo("cmj", "Countermovement jump", 3, "5", 5, "90 seconds", "Crisp jumps, full reset. " + STOP_LOUD),
+            plyo("broad", "Broad jump", 3, "5", 5, "90 seconds", "Stick the landing, walk back. " + STOP_LOUD),
+            plyo("lateral", "Lateral bound", 3, "5 each side", 10, "90 seconds", "Bound, stick, reset. " + STOP_LOUD),
+            plyo("slhop", "Single-leg hops", 3, "4 each leg", 8, "60–90 seconds", "Short hops, hips level. " + STOP_LOUD),
+            handles
+          ];
+          jumps = calmachBlock(3, 5, "Pair these with the unresisted jumps above.");
+        }
       } else if (taper) {
-        title = "Taper and retest";
-        focus = "Easy quality jumps, then retest standing and approach jump, bodyweight, and a 10–20 yard sprint.";
         exercises = [
-          plyo("cmj", "Countermovement jump (retest prep)", 2, "3", 3, "Full reset, at least 90 seconds", "A few crisp jumps only, then test. " + STOP_LOUD)
+          plyo("pogo", "Pogo hops", 2, "4", 4, "45–60 seconds", "Easy, quiet contacts. " + STOP_LOUD),
+          plyo("cmj", "Countermovement jump", 2, "3", 3, "Full reset, at least 90 seconds", "Quality only — taper volume. " + STOP_LOUD),
+          plyo("broad", "Broad jump", 1, "4", 4, "90 seconds", "Quality only. " + STOP_LOUD),
+          handles
         ];
-        jumps = calmachBlock(2, 3, "Optional and easy. Skip if the legs already feel ready to test.");
-        agility = "After a full warm-up and 2–3 build-up sprints, run one or two timed 10–20 yard sprints with at least 90 seconds of rest. Log jump reach, bodyweight, and sprint time in the Progress tab. This is a test, not a max-lift day.";
-        conditioning = null;
-        return { title: title, focus: focus, kind: "train", exercises: exercises, jumps: jumps, agility: agility, retest: true };
+        jumps = calmachBlock(2, 3, "Taper volume. Easy, quiet jumps. Skip if the legs still feel the retest.");
       } else {
         exercises = [
-          ex("lunge", "Walking lunge", 3, "6–8 each leg", "90 seconds", "Controlled, smooth", "Quality single-leg work, not a grind.", LOAD_RULE),
-          plyo("pogo", "Pogo hops", 2, "5", 5, "45–60 seconds", "Elastic and quiet. " + STOP_LOUD),
-          plyo("cmj", "Countermovement jump", 3, "5", 5, "90 seconds", "Crisp jumps, full reset. " + STOP_LOUD),
-          plyo("broad", "Broad jump", 3, "4", 4, "90 seconds", "Stick the landing. " + STOP_LOUD),
+          plyo("pogo", "Pogo hops", 3, "5", 5, "45–60 seconds", "Elastic and quiet. " + STOP_LOUD),
+          plyo("cmj", "Countermovement jump", 3, "5", 5, "90 seconds", "Crisp jumps, full reset. This is the power jump work for the week — not paired with gym lifts. " + STOP_LOUD),
+          plyo("broad", "Broad jump", 3, "5", 5, "90 seconds", "Stick the landing, full reset. " + STOP_LOUD),
           plyo("lateral", "Lateral bound", 3, "5 each side", 10, "90 seconds", "Bound, stick, reset. " + STOP_LOUD),
           plyo("slhop", "Single-leg hops", 2, "4 each leg", 8, "60–90 seconds", "Short hops, hips level. " + STOP_LOUD),
-          sprintEx("sprint", "Short sprints", 10, "10–20 yards", "At least 90 seconds", "Main speed session: up to 10–16 × 10–20 yards on the week, most of them here. Rest at least 90 seconds."),
-          sprintEx("cod", "Change-of-direction reps", 6, "1 short shuttle or 5-10-5", "At least 90 seconds", "4–6 quality COD reps (6 today). Sharp cuts, then at least 90 seconds of rest.")
+          handles
         ];
         jumps = calmachBlock(3, 4, "Pair these with the unresisted jumps above.");
-        agility = "Full rest (at least 90 seconds) so each sprint and cut is fast.";
       }
-      return { title: title, focus: focus, kind: "train", exercises: exercises, jumps: jumps, agility: agility };
+      return { title: title, focus: focus, kind: "train", location: "home", exercises: exercises, jumps: jumps };
     }
 
     if (day === "5") {
-      var skill, core;
+      title = "Home jumps (light) + core + shooting";
+      focus = "The lighter home plyo day: fewer contacts and lighter Calmach (still a full warm-up), then core. Apex shooting is labeled Gym/Home court — use whichever court you have. Keep this session light so Monday gym lower stays fresh.";
       if (p1) {
-        skill = ex("handles", "Combo handle series", deload ? 1 : 2, "stationary combo, then walking combo", "45 seconds between sets", "Eyes up", "Build a simple combo: pound, cross, between, behind. Then walk it, eyes up.", "Add speed only when the combo stays tight.");
+        if (deload) {
+          exercises = [
+            plyo("pogo", "Pogo hops (landing practice)", 1, "8", 8, "45–60 seconds", "Quiet, small contacts. " + STOP_LOUD),
+            plyo("cmj", "Countermovement jump (landing practice)", 1, "5", 5, "60–90 seconds", "Jump, then stick a quiet athletic landing. " + STOP_LOUD)
+          ];
+          jumps = calmachBlock(2, 3, "Light day, deload volume.");
+        } else {
+          exercises = [
+            plyo("pogo", "Pogo hops (landing practice)", 2, "8", 8, "45–60 seconds", "Stiff-ish ankles, quiet feet, small elastic bounces. " + STOP_LOUD),
+            plyo("cmj", "Countermovement jump (landing practice)", 2, "5", 5, "60–90 seconds", "Dip, jump, and stick a quiet athletic landing. " + STOP_LOUD)
+          ];
+          jumps = calmachBlock(3, 4, "Lighter than yesterday. Keep tension light to moderate.");
+        }
         core = [
           ex("plank", "Front plank", deload ? 2 : 3, "25 seconds", "45 seconds", "Steady brace", "Ribs down, glutes on. Come down if the hips pike or sag.", "Add 5 seconds only if all sets stay clean."),
           ex("side", "Side plank", deload ? 2 : 3, "20 seconds each side", "45 seconds", "Hips stacked and high", "Hips stacked and high.", "Add 5 seconds only if the hips stay high."),
           ex("bird", "Bird dog", deload ? 2 : 3, "8 each side", "45 seconds", "Slow and long", "Reach long, hips level, no sway in the low back.", "No load.")
         ];
       } else if (p2 || p3) {
-        skill = ex("handles", "Full-court handle finishes", deload ? 2 : 3, "6–8 finishes each side", "45–60 seconds between sets", "Game pace", "Speed dribble, hesitate, inside-out or spin, and finish with both hands.", "Cleaner finishes and weaker-hand work are the progress.");
+        if (deload) {
+          exercises = [
+            plyo("pogo", "Pogo hops", 1, "5", 5, "45–60 seconds", "Quiet and elastic. " + STOP_LOUD),
+            plyo("cmj", "Countermovement jump", 1, "5", 5, "90 seconds", "Crisp jump, quiet landing. " + STOP_LOUD),
+            plyo("broad", "Broad jump", 1, "5", 5, "90 seconds", "Stick and reset. " + STOP_LOUD)
+          ];
+          jumps = calmachBlock(2, 3, "Light day, deload volume.");
+        } else if (p3) {
+          exercises = [
+            plyo("pogo", "Pogo hops", 2, "5", 5, "45–60 seconds", "Quiet and elastic. " + STOP_LOUD),
+            plyo("cmj", "Countermovement jump", 2, "5", 5, "90 seconds", "Crisp jumps, full reset. " + STOP_LOUD),
+            plyo("broad", "Broad jump", 2, "5", 5, "90 seconds", "Stick the landing, walk back. " + STOP_LOUD),
+            plyo("slhop", "Single-leg hops", 2, "4 each leg", 8, "60–90 seconds", "Short hops, hips level. " + STOP_LOUD)
+          ];
+          jumps = calmachBlock(3, 4, "Lighter than yesterday. Keep tension light to moderate.");
+        } else {
+          exercises = [
+            plyo("pogo", "Pogo hops", 2, "5", 5, "45–60 seconds", "Quiet and elastic. " + STOP_LOUD),
+            plyo("cmj", "Countermovement jump", 2, "5", 5, "90 seconds", "Crisp jumps, full reset. " + STOP_LOUD),
+            plyo("broad", "Broad jump", 2, "5", 5, "90 seconds", "Stick the landing, walk back. " + STOP_LOUD),
+            plyo("slhop", "Single-leg hops", 1, "4 each leg", 8, "60–90 seconds", "Short hops, hips level. " + STOP_LOUD)
+          ];
+          jumps = calmachBlock(3, 4, "Lighter than yesterday. Keep tension light to moderate.");
+        }
         core = [
           ex("plank", "Front plank", deload ? 2 : 3, "35 seconds", "45 seconds", "Steady breath, ribs down", "Stop the set if the hips drop.", "Add 5 seconds only if the hips stay level."),
           ex("side", "Side plank", deload ? 2 : 3, "25 seconds each side", "45 seconds", "Hips high, shoulders stacked", "Hips high, shoulders stacked.", "Match both sides."),
           ex("bridge", "Glute bridge hold", deload ? 2 : 3, "25 seconds", "45 seconds", "Ribs down, glutes squeezed", "Do not turn it into a back arch.", "No load until the low back stays quiet.")
         ];
-      } else {
-        skill = ex("handles", "Pick-and-roll reads off a chair", taper ? 2 : 3, "8–10 each side", "45–60 seconds between sets", "Game pace, both sides", "Reject, split, or reject-and-pull.", "Better reads and pace are the progress.");
+      } else if (taper) {
+        exercises = [
+          plyo("pogo", "Pogo hops", 1, "4", 4, "45–60 seconds", "Easy, quiet contacts. " + STOP_LOUD),
+          plyo("cmj", "Countermovement jump", 1, "3", 3, "Full reset", "A few crisp jumps only. " + STOP_LOUD)
+        ];
+        jumps = calmachBlock(2, 3, "Optional and easy. Skip if the legs already feel ready to rest.");
         core = [
-          ex("plank", "Front plank", taper ? 2 : 3, "30–40 seconds", "45 seconds", "Hard brace, quiet breath", "Quality time, not a shaking max.", "Stop if the hips sag."),
-          ex("side", "Side plank", taper ? 2 : 3, "25–30 seconds each side", "45 seconds", "Hips high the whole time", "Hips high the whole time.", "Match both sides."),
-          ex("lower", "Dead bug or lying leg lower", taper ? 2 : 3, "8", "45 seconds", "Slow, low back pressed down", "Low back stays pressed down.", "No load.")
+          ex("plank", "Front plank", 2, "30–40 seconds", "45 seconds", "Hard brace, quiet breath", "Quality time, not a shaking max.", "Stop if the hips sag."),
+          ex("side", "Side plank", 2, "25–30 seconds each side", "45 seconds", "Hips high the whole time", "Hips high the whole time.", "Match both sides."),
+          ex("lower", "Dead bug or lying leg lower", 2, "8", "45 seconds", "Slow, low back pressed down", "Low back stays pressed down.", "No load.")
+        ];
+      } else {
+        exercises = [
+          plyo("pogo", "Pogo hops", 2, "5", 5, "45–60 seconds", "Elastic and quiet. " + STOP_LOUD),
+          plyo("cmj", "Countermovement jump", 2, "5", 5, "90 seconds", "Crisp jumps, full reset. " + STOP_LOUD),
+          plyo("broad", "Broad jump", 2, "5", 5, "90 seconds", "Stick the landing. " + STOP_LOUD),
+          plyo("lateral", "Lateral bound", 1, "5 each side", 10, "90 seconds", "Bound, stick, reset. " + STOP_LOUD),
+          plyo("slhop", "Single-leg hops", 1, "4 each leg", 8, "60–90 seconds", "Short hops, hips level. " + STOP_LOUD)
+        ];
+        jumps = calmachBlock(2, 4, "Lighter than yesterday. Keep tension light to moderate.");
+        core = [
+          ex("plank", "Front plank", 3, "30–40 seconds", "45 seconds", "Hard brace, quiet breath", "Quality time, not a shaking max.", "Stop if the hips sag."),
+          ex("side", "Side plank", 3, "25–30 seconds each side", "45 seconds", "Hips high the whole time", "Hips high the whole time.", "Match both sides."),
+          ex("lower", "Dead bug or lying leg lower", 3, "8", "45 seconds", "Slow, low back pressed down", "Low back stays pressed down.", "No load.")
         ];
       }
-      skill.noLoad = true;
       core.forEach(function (c) { c.noLoad = true; });
       return {
-        title: "Apex shooting + handles + core",
-        focus: "Skill work, then trunk control.",
+        title: title,
+        focus: focus,
         kind: "train",
-        exercises: [skill].concat(core),
-        shooting: { intro: shootingIntro(phase, "5"), spots: spots(phase, "5") }
+        location: "home",
+        exercises: exercises.concat(core),
+        jumps: jumps,
+        shooting: { intro: shootingIntro(phase, "5"), spots: spots(phase, "5"), place: "court" }
       };
     }
 
     if (day === "6") {
       conditioning = "Easy aerobic or shooting — pick one. Option A: walk, jog, or bike 20–30 minutes at a talking pace (you can speak in full sentences). Option B: 20–30 minutes of easy shooting and form work, no fatigue sprints. This is not an interval day. There are no 200s and no short-rest repeat sprints.";
-      if (taper) conditioning += " This week, keep it easy, especially if the Day 4 retest is still in your legs.";
+      if (taper) conditioning += " This week, keep it easy, especially if the Day 3 retest is still in your legs.";
       var condEx = ex("cond", "Easy aerobic or easy shooting", 1, "20–30 minutes", "None — continuous and easy", "Talking pace, or relaxed shooting", "Stay relaxed. If it does not feel easy, slow down.", "Do not turn this into sprints or extra jump work.");
       condEx.noLoad = true;
       return {
         title: "Easy aerobic or shooting",
-        focus: "Recover while you move. Save speed for Days 1 and 4.",
+        focus: "Recover while you move. Speed is on Day 3; hard jumps are on Day 4.",
         kind: "train",
+        location: "court",
         exercises: [condEx],
         conditioning: conditioning
       };
@@ -1128,6 +1187,7 @@
       title: "Full rest",
       focus: "No training. Eat, sleep, and let the work settle.",
       kind: "rest",
+      location: "rest",
       exercises: [],
       recovery: "No workout today. Keep meals and the bedtime shake the same as a training day, and aim for 8–10 hours of sleep. Easy stretching is fine if you want it. Log bodyweight and sleep."
     };
@@ -1456,7 +1516,7 @@
 
   function renderShooting(plan) {
     if (!plan.shooting) return "";
-    var html = '<div class="card" id="shooting-card"><div class="card-head"><h2>Apex shooting</h2>' + categoryTag("shooting") + "</div>";
+    var html = '<div class="card" id="shooting-card"><div class="card-head"><h2>Apex shooting</h2>' + categoryTag("shooting") + locationTag("court") + "</div>";
     html += '<p class="cue">' + escapeHtml(plan.shooting.intro) + "</p>";
     var i, sp, key, row, m, a, taken, made, pct, pctTxt;
     for (i = 0; i < plan.shooting.spots.length; i++) {
@@ -1516,6 +1576,7 @@
     var mode = weekMode(state.week);
     var prog = sessionProgress(plan);
     var html = '<div class="day-card"><div class="session-title"><div class="card-head"><h2>' + escapeHtml(plan.title) + "</h2>";
+    html += locationTag(plan.location || "rest");
     if (mode === "deload") html += '<span class="mode-pill">Deload week</span>';
     else if (mode === "taper") html += '<span class="mode-pill test">Taper · retest</span>';
     else if (weekIsTest(state.week)) html += '<span class="mode-pill test">Test week</span>';
@@ -1525,8 +1586,8 @@
     if (prog.total) html += progressBarHtml(prog.done, prog.total, "Sets done");
     html += "</div></div>";
     html += '<div class="card"><div class="card-head"><h2>This week\'s plyo contacts</h2>' + categoryTag("plyo") + "</div>";
-    html += '<p class="meta"><strong>' + contacts.total + " unresisted contacts</strong> planned across Days 1 and 4. " + escapeHtml(contacts.note) + "</p>";
-    html += '<p class="cue">Calmach is paired with those jumps and is not in the contact count. Stop if landings get loud.</p></div>';
+    html += '<p class="meta"><strong>' + contacts.total + " unresisted contacts</strong> planned across the gym primer and the two home jump days (Days 1, 4, and 5). " + escapeHtml(contacts.note) + "</p>";
+    html += '<p class="cue">Calmach is only on the two home jump days and is not in the contact count. Stop if landings get loud.</p></div>';
     if (plan.retest) {
       html += '<div class="card"><h2>Week 16 retest</h2><p>After the warm-up and a few crisp jumps, retest standing and approach jump reach, bodyweight, and a timed 10–20 yard sprint. Log the numbers in the Progress tab. This is a test day, not a max-lift day.</p></div>';
     }
@@ -1680,21 +1741,22 @@
 
   function renderGuide() {
     var html = '<div class="card"><h2>The week</h2>';
-    html += '<p class="cue">Five training days and two recovery days, every week, for 16 weeks in four phases. Bodyweight and technique first. Load only with good form. Weeks 4, 8, and 12 are deloads (about half the sets, contacts, and sprints). Week 16 is a taper and retest. High school season ends in February; set a start date above if you want calendar dates on each week.</p>';
-    html += "<table class=\"week-table\"><thead><tr><th>Day</th><th>Session</th></tr></thead><tbody>";
-    html += "<tr><td>Day 1</td><td>Lower strength, unresisted plyos, Calmach, and a little speed</td></tr>";
-    html += "<tr><td>Day 2</td><td>Apex shooting, handles, loaded press and hard pull</td></tr>";
-    html += "<tr><td>Day 3</td><td>Recovery — walk, mobility, optional form shooting</td></tr>";
-    html += "<tr><td>Day 4</td><td>Single-leg strength, plyos, Calmach, and the main sprint session</td></tr>";
-    html += "<tr><td>Day 5</td><td>Apex shooting, handles, core</td></tr>";
-    html += "<tr><td>Day 6</td><td>Easy aerobic or easy shooting — no interval sprints</td></tr>";
-    html += "<tr><td>Day 7</td><td>Full rest</td></tr>";
+    html += '<p class="cue">Five training days and two recovery days, every week, for 16 weeks in four phases. Calmach and mixed plyos are Home sessions; resistance training is at the Gym. Bodyweight and technique first. Load only with good form. Weeks 4, 8, and 12 are deloads (about half the sets, contacts, and sprints). Week 16 is a taper and retest on Day 3. High school season ends in February; set a Monday start date above if you want calendar dates on each week.</p>';
+    html += "<table class=\"week-table\"><thead><tr><th>Day</th><th>Where</th><th>Session</th></tr></thead><tbody>";
+    html += "<tr><td>Day 1 · Mon</td><td>Gym</td><td>Lower-body strength plus a brief 2 × 3 box jump or CMJ primer (no Calmach)</td></tr>";
+    html += "<tr><td>Day 2 · Tue</td><td>Gym / court</td><td>Loaded press and hard pull, then Apex shooting (Gym/Home court)</td></tr>";
+    html += "<tr><td>Day 3 · Wed</td><td>Gym/Home court</td><td>The week’s speed work on fresh legs. Week 16 retest is here.</td></tr>";
+    html += "<tr><td>Day 4 · Thu</td><td>Home</td><td>Harder mixed plyos + Calmach (~20–30 min after a full warm-up), then ball handling</td></tr>";
+    html += "<tr><td>Day 5 · Fri</td><td>Home / court</td><td>Lighter plyos + Calmach, then core and Apex shooting (Gym/Home court)</td></tr>";
+    html += "<tr><td>Day 6 · Sat</td><td>Gym/Home court</td><td>Easy aerobic or easy shooting — no interval sprints</td></tr>";
+    html += "<tr><td>Day 7 · Sun</td><td>Rest</td><td>Full rest</td></tr>";
     html += "</tbody></table>";
+    html += '<p class="cue" style="margin-top:10px">Why the week is built this way: a hard jump day never sits the day before gym lower. Monday legs and Thursday hard jumps are about 72 hours apart. Friday is a light jump day, then Saturday easy and Sunday rest, so the legs have a full weekend before Monday’s lifts. Wednesday speed is 48 hours after Monday legs and comes before Thursday jumps, so the sprints stay fresh. Two recovery days are Saturday (easy only) and Sunday (full rest).</p>';
     html += "<table class=\"week-table\" style=\"margin-top:12px\"><thead><tr><th>Phase</th><th>Weeks</th><th>Focus</th></tr></thead><tbody>";
     html += '<tr class="p1"><td>1 Foundation</td><td>1–4</td><td>Technique, 3 × 8–10, landing practice, about 60–100 contacts, sprints 6–10 × 10–20 yd. Week 4 deload.</td></tr>';
     html += '<tr class="p2"><td>2 Hypertrophy</td><td>5–8</td><td>Trap-bar or front squat 3–4 × 6–8, accessories 3 × 8–12, about 120–140 contacts, hang jump shrug intro. Week 8 deload.</td></tr>';
     html += '<tr class="p3"><td>3 Strength</td><td>9–12</td><td>Main lifts 4 × 4–6 heavier, keep 3 × 8–12 accessories, about 140–160 contacts, sprints up to 10–16 + COD. Week 12 deload.</td></tr>';
-    html += '<tr class="p4"><td>4 Power</td><td>13–16</td><td>Main lifts 3 × 3–5 fast, contrast jumps, one upper day at 3 × 8, about 140–160 contacts, then Week 16 taper and retest.</td></tr>';
+    html += '<tr class="p4"><td>4 Power</td><td>13–16</td><td>Main lifts 3 × 3–5 fast, power jumps on home days, one upper day at 3 × 8, about 140–160 contacts, then Week 16 taper and Day 3 retest.</td></tr>';
     html += "</tbody></table></div>";
 
     html += '<div class="card"><h2>How to add load</h2><p>' + escapeHtml(LOAD_RULE) + "</p>";
@@ -1784,16 +1846,18 @@
       WEEKS.forEach(function (w, i) { weekSel.options[i].textContent = weekLabel(w); });
     }
     weekSel.value = state.week;
-    daySel.value = state.day;
-    if (daySel.options.length === 0) {
+    if (daySel.options.length !== DAYS.length) {
+      daySel.innerHTML = "";
       DAYS.forEach(function (d) {
         var opt = document.createElement("option");
         opt.value = d.id;
         opt.textContent = d.label;
         daySel.appendChild(opt);
       });
-      daySel.value = state.day;
+    } else {
+      DAYS.forEach(function (d, i) { daySel.options[i].textContent = d.label; });
     }
+    daySel.value = state.day;
     var tabs = document.querySelectorAll(".tabbar button");
     var i;
     for (i = 0; i < tabs.length; i++) {
