@@ -869,8 +869,42 @@
     body.coach-view [data-act="shot-m"],
     body.coach-view [data-act="shot-a"],
     body.coach-view [data-act="test-f"],
-    body.coach-view [data-act="start-date"] {
+    body.coach-view [data-act="start-date"],
+    body.coach-view [data-act="set-band"],
+    body.coach-view [data-act="set-notes"],
+    body.coach-view [data-act="set-time"],
+    body.coach-view [data-act="daily-sauna"],
+    body.coach-view [data-act="hk-start"],
+    body.coach-view [data-act="hk-reset"] {
       pointer-events: none;
+    }
+    .hk-timer {
+      margin: 14px 0 10px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: var(--paper-2);
+      border: 1px solid var(--line);
+      text-align: center;
+    }
+    .hk-readout {
+      font-size: 3.2rem;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: 0.02em;
+      color: #fff;
+    }
+    .hk-phase { margin: 8px 0 12px; font-weight: 650; color: var(--muted); }
+    .foot-item { margin: 0 0 16px; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
+    .foot-item:last-child { border-bottom: 0; margin-bottom: 0; padding-bottom: 0; }
+    .callout {
+      margin: 0 0 14px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: var(--phase-soft);
+      border: 1px solid var(--phase);
+      color: #fff;
+      font-weight: 650;
+      font-size: 0.95rem;
     }
     body.coach-view .coach-banner {
       display: block;
@@ -926,7 +960,7 @@
     { id: "3", label: "Day 3 · Wed · Speed + optional lift" },
     { id: "4", label: "Day 4 · Thu · Home jumps" },
     { id: "5", label: "Day 5 · Fri · Home jumps (light)" },
-    { id: "6", label: "Day 6 · Sat · Easy aerobic / shoot" },
+    { id: "6", label: "Day 6 · Sat · Foot work + conditioning" },
     { id: "7", label: "Day 7 · Sun · Full rest" }
   ];
 
@@ -1022,15 +1056,17 @@
 
   function categoryFor(exer) {
     if (!exer) return "strength";
+    if (exer.footBlock || exer.kind === "prehab") return "prehab";
     if (exer.kind === "plyo") return "plyo";
     if (exer.kind === "sprint") return "speed";
     if (exer.id === "handles") return "handles";
-    if (exer.id === "cond") return "conditioning";
+    if (exer.kind === "conditioning" || exer.bball || exer.id === "cond") return "conditioning";
     return "strength";
   }
 
   function categoryLabel(cat) {
     if (cat === "plyo") return "Plyos/Calmach";
+    if (cat === "prehab") return "Foot / ankle";
     if (cat === "speed") return "Speed";
     if (cat === "shooting") return "Shooting/Apex";
     if (cat === "handles") return "Handles";
@@ -1208,15 +1244,151 @@
 
   function weeklyContactInfo(week) {
     var phase = phaseFor(week);
-    var total = contactSum(planFor(phase, "1", week).exercises || []) + contactSum(planFor(phase, "4", week).exercises || []) + contactSum(planFor(phase, "5", week).exercises || []);
+    var total = contactSum(planFor(phase, "1", week).exercises || []) + contactSum(planFor(phase, "4", week).exercises || []) + contactSum(planFor(phase, "5", week).exercises || []) + contactSum(planFor(phase, "6", week).exercises || []);
     var mode = weekMode(week);
-    var phaseTarget = phase === "hypertrophy" ? "110–130" : "140–160";
+    var phaseTarget = phase === "hypertrophy" ? "about 450" : "about 500";
     var note;
-    if (mode === "deload") note = "Deload week: about half the usual contacts and sprints.";
-    else if (mode === "taper") note = "Taper and retest week: keep contacts low and crisp.";
-    else note = "Phase target " + phaseTarget + " unresisted contacts this week.";
+    if (mode === "deload") note = "Deload week: Calmach days are about half. Totals include the Monday primer, Calmach jumps, and barefoot pogos on Thu/Fri/Sat. Wednesday sprints and court conditioning are separate.";
+    else if (mode === "taper") note = "Taper and retest week: Calmach days are about half. Totals include the Monday primer, Calmach jumps, and barefoot pogos. Wednesday sprints and court conditioning are separate.";
+    else note = "About " + total + " jump contacts this week (Calmach + Monday primer + barefoot pogos on Thu/Fri/Sat). Phase typical is " + phaseTarget + ". Wednesday sprints and court conditioning are separate.";
     return { total: total, target: phaseTarget, mode: mode, note: note };
   }
+
+  var FOOT_NOTE = "Shoes ON for Calmach jumps and all lifting. Barefoot only on a mat, turf, or grass. Stop if there's foot or arch pain.";
+  var SAUNA_NOTE = "Get out if dizzy, light-headed, or nauseous. An adult should be home.";
+  var AAU_SKIP = "Skip if you had an AAU game or practice today or tomorrow.";
+
+  function hkContacts(from) {
+    from = Number(from) || 0;
+    return Math.round((from * (from + 1) / 2) * 2);
+  }
+
+  function calmachEx(id, name, sets, reps, contactsPerSet, rest, cue, extra) {
+    var e = plyo(id, name, sets, reps, contactsPerSet, rest, cue);
+    e.calmach = true;
+    e.progress = CALMACH_PROG;
+    if (extra) {
+      if (extra.timer) e.timer = extra.timer;
+      if (extra.countdownFrom) e.countdownFrom = extra.countdownFrom;
+      if (extra.logTime) e.logTime = true;
+    }
+    return e;
+  }
+
+  function thursdayCalmach(phase, deload, taper) {
+    var half = deload || taper;
+    var fullRest = "Full reset, at least 60–90 seconds";
+    var powerCue = "Jump as high as you can each time!";
+    if (phase === "strength" || phase === "power") {
+      fullRest = "Full rest between jump sets for quality — at least 90 seconds";
+    }
+    if (phase === "power" && !half) {
+      fullRest = "Full rest between sets — at least 90–120 seconds. Quality and height over hurry.";
+      powerCue = "Jump as high as you can each time! Max-height reps with a full reset.";
+    }
+    var pogoS, pogoR, powS, powR, slS, slR, luS, luR, kneeR, hkFrom, stS, stR;
+    if (half && phase === "hypertrophy") {
+      pogoS = 1; pogoR = 10; powS = 1; powR = 10; slS = 1; slR = 6; luS = 1; luR = 10; kneeR = 5; hkFrom = 5; stS = 2; stR = 8;
+    } else if (half) {
+      pogoS = 2; pogoR = 8; powS = 2; powR = 8; slS = 1; slR = 10; luS = 2; luR = 8; kneeR = 5; hkFrom = 5; stS = 2; stR = 8;
+    } else if (phase === "hypertrophy") {
+      pogoS = 2; pogoR = 10; powS = 2; powR = 10; slS = 2; slR = 6; luS = 2; luR = 10; kneeR = 10; hkFrom = 10; stS = 3; stR = 10;
+    } else {
+      pogoS = 3; pogoR = 10; powS = 3; powR = 10; slS = 2; slR = 10; luS = 3; luR = 10; kneeR = 10; hkFrom = 10; stS = 3; stR = 10;
+    }
+    return [
+      calmachEx("rpvj", "Resisted Pogo Vertical Jumps", pogoS, String(pogoR), pogoR, fullRest, "Spend minimal time on the ground. Quiet, elastic contacts. " + STOP_LOUD),
+      calmachEx("rvpj", "Resisted Vertical Power Jumps", powS, String(powR), powR, fullRest, powerCue),
+      calmachEx("rslj", "Resisted Single-Leg Jumps", slS, slR + " each leg", slR * 2, fullRest, "Develops power off one foot for layups/dunks!"),
+      calmachEx("rlunge", "Resisted Lunge Jumps", luS, luR + " jumps (5 each leg)", luR, fullRest, luR + " jumps per set, 5 each leg. Stay tall and soft on the landing. " + STOP_LOUD),
+      calmachEx("rknee", "Resisted Knee Hop Jumps", 1, kneeR + " total", kneeR, "Full reset", kneeR + " jumps total, not " + kneeR + " each set. Quick knees, quiet landings. " + STOP_LOUD),
+      calmachEx("rhk", "Resisted High Knees countdown", 1, hkFrom + "s down to 1s", hkContacts(hkFrom), "Short rest between rounds", "Work " + hkFrom + " seconds, take a short rest, then " + Math.max(1, hkFrom - 1) + " seconds, and so on down to 1. Drive the knees up. " + STOP_LOUD, { timer: "highknees", countdownFrom: hkFrom }),
+      calmachEx("rstep", "Resisted Step-Ups on chair", stS, stR + " each leg", stR * 2, "60–90 seconds after both legs", "Use a sturdy chair. " + stR + " on each leg every set. Control the down step. " + STOP_LOUD)
+    ];
+  }
+
+  function fridayCalmach(deload, taper) {
+    var half = deload || taper;
+    var pogoS = half ? 1 : 2, pogoR = 10;
+    var powS = half ? 1 : 2, powR = 5;
+    var stS = half ? 1 : 2, stR = 8;
+    var rest = "Full reset, at least 60–90 seconds — quality, not hurry";
+    return [
+      calmachEx("rpvj", "Resisted Pogo Vertical Jumps", pogoS, String(pogoR), pogoR, rest, "Spend minimal time on the ground. Light day — keep these quiet and elastic. " + STOP_LOUD),
+      calmachEx("rvpj", "Resisted Vertical Power Jumps", powS, String(powR), powR, rest, "Jump as high as you can each time! Quality over volume today."),
+      calmachEx("rstep", "Resisted Step-Ups on chair", stS, stR + " each leg", stR * 2, "60–90 seconds after both legs", "Use a sturdy chair. " + stR + " on each leg every set. Control the down step. " + STOP_LOUD)
+    ];
+  }
+
+  function footBlockExercises(week) {
+    var eyes = Number(week) >= 7
+      ? "Eyes closed. Hold the foot still and stay tall."
+      : "Eyes open is fine. Hold the foot still and stay tall. In weeks 7+ you will close your eyes.";
+    function footEx(id, name, sets, reps, rest, cue) {
+      var e = ex(id, name, sets, reps, rest, "", cue, FOOT_NOTE);
+      e.noLoad = true;
+      e.footBlock = true;
+      e.kind = "prehab";
+      return e;
+    }
+    var pogos = plyo("bfpogo", "Barefoot pogo hops", 2, "20", 20, "45–60 seconds", "Small, quiet hops on a mat or grass only — never on a hard bare floor. " + STOP_LOUD);
+    pogos.footBlock = true;
+    pogos.progress = FOOT_NOTE;
+    return [
+      footEx("toeyoga", "Toe yoga", 2, "10", "45 seconds", "Spread, lift, and set the toes down one at a time. Barefoot on a mat, turf, or grass."),
+      footEx("shortfoot", "Short-foot holds", 3, "20 seconds", "20–30 seconds", "Gently shorten the foot by lifting the arch without curling the toes hard. Soft, steady holds."),
+      footEx("slbal", "Single-leg balance", 3, "30 seconds each", "20–30 seconds after both legs", eyes),
+      footEx("slcalf", "Slow single-leg calf raises", 3, "12 each", "45–60 seconds after both legs", "Slow up and slow down. Barefoot on a mat, turf, or grass. Stop if there is foot or arch pain."),
+      pogos
+    ];
+  }
+
+  function condDrill(id, name, sets, reps, rest, cue, logTime) {
+    var e = ex(id, name, sets, reps, rest, "", cue, AAU_SKIP + " Keep this off Monday and Tuesday evenings.");
+    e.noLoad = true;
+    e.kind = "conditioning";
+    e.bball = true;
+    if (logTime) e.logTime = true;
+    return e;
+  }
+
+  function courtCondExercises(week) {
+    var mode = weekMode(week);
+    var half = mode === "deload" || mode === "taper";
+    var ramp = Number(week) >= 12;
+    var zz, sbs, sevN, burst, burstReps, list;
+    if (!ramp) {
+      zz = half ? 2 : 3;
+      sbs = half ? 2 : 3;
+      sevN = 1;
+      burst = 0;
+    } else {
+      zz = half ? 3 : 5;
+      sbs = half ? 3 : 5;
+      sevN = half ? 2 : 4;
+      burst = half ? 3 : 5;
+      burstReps = half ? "30s on / 30s easy" : "30s on / 20–25s easy — game-like";
+    }
+    list = [
+      condDrill("zzslide", "Full-court defensive zig-zag slides", zz, "1 trip", "Walk back, stay low", "Stay in a defensive stance. Choppy feet, no crossing the feet. " + AAU_SKIP),
+      condDrill("sbsline", "Sprint-backpedal-slide", sbs, "baseline → FT → half → far FT → baseline", "Walk back", "Sprint, backpedal, and slide through those lines in order. " + AAU_SKIP),
+      condDrill("seventeen", "17s", sevN, "sideline-to-sideline × 17", "2:00", "Sideline to sideline 17 times. Target under 60 seconds. Rest 2:00 between reps. Log each time. " + AAU_SKIP, true)
+    ];
+    if (burst) {
+      list.push(condDrill("burst30", "Court interval bursts", burst, burstReps, "Stay on the clock", "Game-like closeouts and sprints, then easy jog or walk. " + AAU_SKIP));
+    }
+    return list;
+  }
+
+  function condNoteFor(week) {
+    var ramp = Number(week) >= 12;
+    var half = weekMode(week) === "deload" || weekMode(week) === "taper";
+    if (!ramp) {
+      return "Light guard conditioning, about 10–12 minutes: 3–4 rounds of defensive slides and sprint-backpedal-slide, plus one 17s. " + AAU_SKIP + " Keep this off Monday and Tuesday evenings." + (half ? " Deload week — fewer rounds." : "");
+    }
+    return "Pre-season guard conditioning, about 15–20 minutes: defensive slides, sprint-backpedal-slide, " + (half ? "two 17s, and easier bursts (taper volume)." : "3–4 timed 17s, and game-like interval bursts.") + " " + AAU_SKIP + " Keep this off Monday and Tuesday evenings.";
+  }
+
 
   function phaseRIR(phase) {
     if (phase === "power") return 3;
@@ -1365,14 +1537,16 @@
     if (day === "3") {
       title = taper ? "Taper and retest" : "Speed + optional lift";
       focus = taper
-        ? "After the warm-up, retest standing and approach jump reach, bodyweight, and a timed 10–20 yard sprint. Then keep any remaining work easy. This is a test day, not a max-lift day."
-        : "The week’s speed work first, on fresh legs — 48 hours after gym lower, and before the hard home jump day. If the sprints were crisp, an optional ~30 minute upper / full-body gym add-on can follow for extra muscle work.";
+        ? "After the warm-up, retest standing and approach jump reach, bodyweight, a timed 10–20 yard sprint, and a 17s. Then a short, easy half-dose of guard conditioning only if the legs still feel crisp. This is a test day, not a max-lift day."
+        : (phase === "power"
+          ? "The week’s speed work first, on fresh legs — 48 hours after gym lower, and before the hard home jump day. Then a pre-season guard-conditioning block (about 15–20 minutes). If the sprints and conditioning were crisp, an optional ~30 minute upper / full-body gym add-on can follow. Keep conditioning off Monday and Tuesday evenings."
+          : "The week’s speed work first, on fresh legs — 48 hours after gym lower, and before the hard home jump day. If the sprints were crisp, an optional ~30 minute upper / full-body gym add-on can follow for extra muscle work. Guard conditioning in weeks 1–11 is on Saturday only.");
       agility = "Full rest (at least 90 seconds, or a walk back) so each sprint and cut is fast. This is speed, not conditioning. Do the optional lift only after the sprints.";
       if (taper) {
         exercises = [
           sprintEx("sprint", "Build-up sprints", 3, "10–20 yards, about 80–90%", "At least 90 seconds", "Build-ups only if the retest is already done and the legs still feel crisp. Do not chase a new top speed after the test.")
-        ].concat(optionalGymAddOn(phase, deload, taper));
-        return { title: title, focus: focus, kind: "train", location: "court", exercises: exercises, agility: agility, retest: true };
+        ].concat(courtCondExercises(week)).concat(optionalGymAddOn(phase, deload, taper));
+        return { title: title, focus: focus, kind: "train", location: "court", exercises: exercises, agility: agility, retest: true, condNote: condNoteFor(week), seventeenTest: true };
       }
       if (p1) {
         exercises = [
@@ -1391,177 +1565,65 @@
           sprintEx("cod", "Change-of-direction reps", 6, "1 short shuttle or 5-10-5", "At least 90 seconds", "4–6 quality COD reps (6 today). Sharp cuts, then a full rest of at least 90 seconds.")
         ];
       }
+      if (phase === "power") exercises = exercises.concat(courtCondExercises(week));
       exercises = exercises.concat(optionalGymAddOn(phase, deload, taper));
-      return { title: title, focus: focus, kind: "train", location: "court", exercises: exercises, agility: agility };
+      return { title: title, focus: focus, kind: "train", location: "court", exercises: exercises, agility: agility, condNote: phase === "power" ? condNoteFor(week) : "", seventeenTest: phase === "power" && weekIsTest(week) };
     }
 
     if (day === "4") {
-      title = "Home jumps + Calmach + handles";
-      focus = "The harder home plyo day: mixed unresisted jumps and Calmach (about 20–30 minutes after a full warm-up), then ball handling. No gym lifts today.";
+      title = "Home Calmach jumps + handles";
+      focus = "The hard home jump day on the Calmach. Start barefoot with the foot / ankle block (~10 minutes), then shoes on for Blake’s resisted jump routine, then ball handling. No gym lifts today.";
       handles = homeHandles(phase, deload, taper);
-      if (p1) {
-        if (deload) {
-          exercises = [
-            plyo("pogo", "Pogo hops", 1, "8", 8, "45–60 seconds", "Quiet, small contacts. " + STOP_LOUD),
-            plyo("cmj", "Countermovement jump", 2, "5", 5, "90 seconds", "Crisp jump, quiet landing. " + STOP_LOUD),
-            plyo("broad", "Broad jump", 2, "5", 5, "90 seconds", "Stick and reset. " + STOP_LOUD),
-            plyo("lateral", "Lateral bound", 1, "5 each side", 10, "90 seconds", "Bound, stick, reset. " + STOP_LOUD),
-            plyo("slhop", "Single-leg hops", 1, "4 each leg", 8, "60–90 seconds", "Short hops, hips level. " + STOP_LOUD),
-            handles
-          ];
-          jumps = calmachBlock(2, 4, "Deload volume.");
-        } else {
-          exercises = [
-            plyo("pogo", "Pogo hops", 2, "8", 8, "45–60 seconds", "Quiet, small, elastic contacts. " + STOP_LOUD),
-            plyo("cmj", "Countermovement jump", 3, "5", 5, "90 seconds", "Crisp jumps, full reset. " + STOP_LOUD),
-            plyo("broad", "Broad jump", 3, "5", 5, "90 seconds", "Stick the landing, walk back. " + STOP_LOUD),
-            plyo("lateral", "Lateral bound", 2, "5 each side", 10, "90 seconds", "Bound sideways, stick, reset. " + STOP_LOUD),
-            plyo("slhop", "Single-leg hops", 2, "4 each leg", 8, "60–90 seconds", "Short hops, hips level. " + STOP_LOUD),
-            handles
-          ];
-          jumps = calmachBlock(3, 5, "Pair these with the unresisted jumps above.");
-        }
-      } else if (p2) {
-        if (deload) {
-          exercises = [
-            plyo("pogo", "Pogo hops", 2, "5", 5, "45–60 seconds", "Quiet and elastic. " + STOP_LOUD),
-            plyo("cmj", "Countermovement jump", 2, "5", 5, "90 seconds", "Crisp jump, quiet landing. " + STOP_LOUD),
-            plyo("broad", "Broad jump", 2, "5", 5, "90 seconds", "Stick and reset. " + STOP_LOUD),
-            plyo("lateral", "Lateral bound", 2, "5 each side", 10, "90 seconds", "Bound, stick, reset. " + STOP_LOUD),
-            plyo("slhop", "Single-leg hops", 1, "4 each leg", 8, "60–90 seconds", "Short hops, hips level. " + STOP_LOUD),
-            handles
-          ];
-          jumps = calmachBlock(2, 4, "Deload volume.");
-        } else {
-          exercises = [
-            plyo("pogo", "Pogo hops", 3, "5", 5, "45–60 seconds", "Quiet and elastic. " + STOP_LOUD),
-            plyo("cmj", "Countermovement jump", 3, "5", 5, "90 seconds", "Crisp jumps, full reset. " + STOP_LOUD),
-            plyo("broad", "Broad jump", 3, "5", 5, "90 seconds", "Stick the landing, walk back. " + STOP_LOUD),
-            plyo("lateral", "Lateral bound", 3, "5 each side", 10, "90 seconds", "Bound, stick, reset. " + STOP_LOUD),
-            plyo("slhop", "Single-leg hops", 2, "4 each leg", 8, "60–90 seconds", "Short hops, hips level. " + STOP_LOUD),
-            handles
-          ];
-          jumps = calmachBlock(3, 5, "Pair these with the unresisted jumps above.");
-        }
-      } else if (taper) {
-        exercises = [
-          plyo("pogo", "Pogo hops", 2, "4", 4, "45–60 seconds", "Easy, quiet contacts. " + STOP_LOUD),
-          plyo("cmj", "Countermovement jump", 2, "3", 3, "Full reset, at least 90 seconds", "Quality only — taper volume. " + STOP_LOUD),
-          plyo("broad", "Broad jump", 1, "4", 4, "90 seconds", "Quality only. " + STOP_LOUD),
-          handles
-        ];
-        jumps = calmachBlock(2, 3, "Taper volume. Easy, quiet jumps. Skip if the legs still feel the retest.");
-      } else {
-        exercises = [
-          plyo("pogo", "Pogo hops", 3, "5", 5, "45–60 seconds", "Elastic and quiet. " + STOP_LOUD),
-          plyo("cmj", "Countermovement jump", 3, "5", 5, "90 seconds", "Crisp jumps, full reset. This is the power jump work for the week — not paired with gym lifts. " + STOP_LOUD),
-          plyo("broad", "Broad jump", 3, "5", 5, "90 seconds", "Stick the landing, full reset. " + STOP_LOUD),
-          plyo("lateral", "Lateral bound", 3, "5 each side", 10, "90 seconds", "Bound, stick, reset. " + STOP_LOUD),
-          plyo("slhop", "Single-leg hops", 3, "4 each leg", 8, "60–90 seconds", "Short hops, hips level. " + STOP_LOUD),
-          handles
-        ];
-        jumps = calmachBlock(3, 4, "Pair these with the unresisted jumps above.");
-      }
-      return { title: title, focus: focus, kind: "train", location: "home", exercises: exercises, jumps: jumps };
+      exercises = footBlockExercises(week).concat(thursdayCalmach(phase, deload, taper)).concat([handles]);
+      return { title: title, focus: focus, kind: "train", location: "home", exercises: exercises, footWarmup: true };
     }
 
     if (day === "5") {
-      title = "Home jumps (light) + core + shooting";
-      focus = "The lighter home plyo day: fewer contacts and lighter Calmach (still a full warm-up), then core. Apex shooting is labeled Gym/Home court — use whichever court you have. Keep this session light so Monday gym lower stays fresh.";
+      title = "Home Calmach (light) + core + shooting";
+      focus = "A lighter Calmach day so Monday gym lower stays fresh. Start barefoot with the foot / ankle block, then shoes on for a short resisted jump session, then core. Apex shooting is labeled Gym/Home court — use whichever court you have.";
       if (p1) {
-        if (deload) {
-          exercises = [
-            plyo("pogo", "Pogo hops", 1, "8", 8, "45–60 seconds", "Quiet, small contacts. " + STOP_LOUD),
-            plyo("cmj", "Countermovement jump", 1, "5", 5, "90 seconds", "Crisp jump, quiet landing. " + STOP_LOUD),
-            plyo("broad", "Broad jump", 1, "5", 5, "90 seconds", "Stick and reset. " + STOP_LOUD)
-          ];
-          jumps = calmachBlock(2, 3, "Light day, deload volume.");
-        } else {
-          exercises = [
-            plyo("pogo", "Pogo hops", 2, "8", 8, "45–60 seconds", "Stiff-ish ankles, quiet feet, small elastic bounces. " + STOP_LOUD),
-            plyo("cmj", "Countermovement jump", 2, "5", 5, "90 seconds", "Crisp jumps, full reset. " + STOP_LOUD),
-            plyo("broad", "Broad jump", 2, "5", 5, "90 seconds", "Stick the landing, walk back. " + STOP_LOUD)
-          ];
-          jumps = calmachBlock(3, 4, "Lighter than yesterday. Keep tension light to moderate.");
-        }
         core = [
           ex("plank", "Front plank", deload ? 2 : 3, "30 seconds", "45 seconds", "Steady brace", "Ribs down, glutes on. Come down if the hips pike or sag.", "Add 5 seconds only if all sets stay clean."),
           ex("side", "Side plank", deload ? 2 : 3, "20–25 seconds each side", "45 seconds", "Hips stacked and high", "Hips stacked and high.", "Add 5 seconds only if the hips stay high."),
           ex("bird", "Bird dog", deload ? 2 : 3, "8 each side", "45 seconds", "Slow and long", "Reach long, hips level, no sway in the low back.", "No load.")
         ];
       } else if (p2) {
-        if (deload) {
-          exercises = [
-            plyo("pogo", "Pogo hops", 1, "5", 5, "45–60 seconds", "Quiet and elastic. " + STOP_LOUD),
-            plyo("cmj", "Countermovement jump", 1, "5", 5, "90 seconds", "Crisp jump, quiet landing. " + STOP_LOUD),
-            plyo("broad", "Broad jump", 1, "5", 5, "90 seconds", "Stick and reset. " + STOP_LOUD)
-          ];
-          jumps = calmachBlock(2, 3, "Light day, deload volume.");
-        } else {
-          exercises = [
-            plyo("pogo", "Pogo hops", 2, "5", 5, "45–60 seconds", "Quiet and elastic. " + STOP_LOUD),
-            plyo("cmj", "Countermovement jump", 2, "5", 5, "90 seconds", "Crisp jumps, full reset. " + STOP_LOUD),
-            plyo("broad", "Broad jump", 2, "5", 5, "90 seconds", "Stick the landing, walk back. " + STOP_LOUD),
-            plyo("lateral", "Lateral bound", 1, "5 each side", 10, "90 seconds", "Bound, stick, reset. " + STOP_LOUD),
-            plyo("slhop", "Single-leg hops", 1, "4 each leg", 8, "60–90 seconds", "Short hops, hips level. " + STOP_LOUD)
-          ];
-          jumps = calmachBlock(3, 4, "Lighter than yesterday. Keep tension light to moderate.");
-        }
         core = [
           ex("plank", "Front plank", deload ? 2 : 3, "35 seconds", "45 seconds", "Steady breath, ribs down", "Stop the set if the hips drop.", "Add 5 seconds only if the hips stay level."),
           ex("side", "Side plank", deload ? 2 : 3, "25 seconds each side", "45 seconds", "Hips high, shoulders stacked", "Hips high, shoulders stacked.", "Match both sides."),
           ex("bridge", "Glute bridge hold", deload ? 2 : 3, "25 seconds", "45 seconds", "Ribs down, glutes squeezed", "Do not turn it into a back arch.", "No load until the low back stays quiet.")
         ];
-      } else if (taper) {
-        exercises = [
-          plyo("pogo", "Pogo hops", 1, "4", 4, "45–60 seconds", "Easy, quiet contacts. " + STOP_LOUD),
-          plyo("cmj", "Countermovement jump", 1, "3", 3, "Full reset", "A few crisp jumps only. " + STOP_LOUD)
-        ];
-        jumps = calmachBlock(2, 3, "Optional and easy. Skip if the legs already feel ready to rest.");
-        core = [
-          ex("plank", "Front plank", 2, "30–40 seconds", "45 seconds", "Hard brace, quiet breath", "Quality time, not a shaking max.", "Stop if the hips sag."),
-          ex("side", "Side plank", 2, "25–30 seconds each side", "45 seconds", "Hips high the whole time", "Hips high the whole time.", "Match both sides."),
-          ex("lower", "Dead bug or lying leg lower", 2, "8", "45 seconds", "Slow, low back pressed down", "Low back stays pressed down.", "No load.")
-        ];
       } else {
-        exercises = [
-          plyo("pogo", "Pogo hops", 2, "5", 5, "45–60 seconds", "Elastic and quiet. " + STOP_LOUD),
-          plyo("cmj", "Countermovement jump", 2, "5", 5, "90 seconds", "Crisp jumps, full reset. " + STOP_LOUD),
-          plyo("broad", "Broad jump", 2, "5", 5, "90 seconds", "Stick the landing. " + STOP_LOUD),
-          plyo("lateral", "Lateral bound", 1, "5 each side", 10, "90 seconds", "Bound, stick, reset. " + STOP_LOUD),
-          plyo("slhop", "Single-leg hops", 1, "4 each leg", 8, "60–90 seconds", "Short hops, hips level. " + STOP_LOUD)
-        ];
-        jumps = calmachBlock(2, 4, "Lighter than yesterday. Keep tension light to moderate.");
         core = [
-          ex("plank", "Front plank", 3, "30–40 seconds", "45 seconds", "Hard brace, quiet breath", "Quality time, not a shaking max.", "Stop if the hips sag."),
-          ex("side", "Side plank", 3, "25–30 seconds each side", "45 seconds", "Hips high the whole time", "Hips high the whole time.", "Match both sides."),
-          ex("lower", "Dead bug or lying leg lower", 3, "8", "45 seconds", "Slow, low back pressed down", "Low back stays pressed down.", "No load.")
+          ex("plank", "Front plank", taper ? 2 : 3, taper ? "30–40 seconds" : "30–40 seconds", "45 seconds", "Hard brace, quiet breath", "Quality time, not a shaking max.", "Stop if the hips sag."),
+          ex("side", "Side plank", taper ? 2 : 3, "25–30 seconds each side", "45 seconds", "Hips high the whole time", "Hips high the whole time.", "Match both sides."),
+          ex("lower", "Dead bug or lying leg lower", taper ? 2 : 3, "8", "45 seconds", "Slow, low back pressed down", "Low back stays pressed down.", "No load.")
         ];
       }
       core.forEach(function (c) { c.noLoad = true; });
+      exercises = footBlockExercises(week).concat(fridayCalmach(deload, taper)).concat(core);
       return {
         title: title,
         focus: focus,
         kind: "train",
         location: "home",
-        exercises: exercises.concat(core),
-        jumps: jumps,
+        exercises: exercises,
+        footWarmup: true,
         shooting: { intro: shootingIntro(phase, "5"), spots: spots(phase, "5"), place: "court" }
       };
     }
 
     if (day === "6") {
-      conditioning = "Easy aerobic or shooting — pick one. Option A: walk, jog, or bike 20–30 minutes at a talking pace (you can speak in full sentences). Option B: 20–30 minutes of easy shooting and form work, no fatigue sprints. This is not an interval day. There are no 200s and no short-rest repeat sprints.";
-      if (taper) conditioning += " This week, keep it easy, especially if the Day 3 retest is still in your legs.";
-      var condEx = ex("cond", "Easy aerobic or easy shooting", 1, "20–30 minutes", "None — continuous and easy", "Talking pace, or relaxed shooting", "Stay relaxed. If it does not feel easy, slow down.", "Do not turn this into sprints or extra jump work.");
-      condEx.noLoad = true;
+      exercises = footBlockExercises(week).concat(courtCondExercises(week));
       return {
-        title: "Easy aerobic or shooting",
-        focus: "Recover while you move. Speed is on Day 3; hard jumps are on Day 4.",
+        title: Number(week) >= 12 ? "Foot / ankle + guard conditioning" : "Foot / ankle + light guard conditioning",
+        focus: "Start barefoot with the foot / ankle block (~10 minutes). Then shoes on for basketball conditioning on the court. " + condNoteFor(week) + " Easy shooting is fine afterward if the legs still feel fresh. There are no 200s and no short-rest repeat sprints.",
         kind: "train",
         location: "court",
-        exercises: [condEx],
-        conditioning: conditioning
+        exercises: exercises,
+        footWarmup: true,
+        condNote: condNoteFor(week),
+        seventeenTest: weekIsTest(week)
       };
     }
 
@@ -1571,7 +1633,7 @@
       kind: "rest",
       location: "rest",
       exercises: [],
-      recovery: "No workout today. Keep meals and the bedtime shake the same as a training day, and aim for 8–10 hours of sleep. Easy stretching is fine if you want it. Log bodyweight and sleep."
+      recovery: "No workout today. Keep meals and the bedtime shake the same as a training day, and aim for 8–10 hours of sleep. Easy stretching is fine if you want it. Log bodyweight, sleep, and any sauna minutes on the Recovery page. If you use the sauna and a cold plunge today, finish with the plunge."
     };
   }
 
@@ -2123,7 +2185,7 @@
   function kDay(week, day) { return week + ":" + day; }
   function kShot(week, day, id) { return week + ":" + day + ":" + id; }
 
-  function emptySet() { return { done: false, weight: "", reps: "", rir: "" }; }
+  function emptySet() { return { done: false, weight: "", reps: "", rir: "", band: "", notes: "", time: "" }; }
 
   function getSet(week, day, id, i) {
     var rec = state.sets[kSet(week, day, id, i)];
@@ -2132,7 +2194,10 @@
       done: !!rec.done,
       weight: rec.weight || "",
       reps: rec.reps != null ? rec.reps : "",
-      rir: rec.rir != null ? rec.rir : ""
+      rir: rec.rir != null ? rec.rir : "",
+      band: rec.band || "",
+      notes: rec.notes || "",
+      time: rec.time || ""
     };
   }
 
@@ -2143,7 +2208,10 @@
       done: patch.done !== undefined ? patch.done : cur.done,
       weight: patch.weight !== undefined ? patch.weight : cur.weight,
       reps: patch.reps !== undefined ? patch.reps : cur.reps,
-      rir: patch.rir !== undefined ? patch.rir : cur.rir
+      rir: patch.rir !== undefined ? patch.rir : cur.rir,
+      band: patch.band !== undefined ? patch.band : cur.band,
+      notes: patch.notes !== undefined ? patch.notes : cur.notes,
+      time: patch.time !== undefined ? patch.time : cur.time
     };
     persist();
   }
@@ -2523,7 +2591,11 @@
       html += '<div class="set-row' + doneClass + (exer.noLoad ? " noload" : " loaded") + '">';
       html += '<label class="set-btn"><input type="checkbox" data-act="set-done" data-ex="' + escapeHtml(exer.id) + '" data-i="' + i + '"' + checked + '> ' + (i + 1) + "</label>";
       if (exer.noLoad) {
-        html += "<div>Set " + (i + 1) + " of " + exer.sets + "</div>";
+        html += "<div>Set " + (i + 1) + " of " + exer.sets;
+        if (exer.logTime) {
+          html += '<div class="set-fields" style="margin-top:8px"><label class="mini">Time (sec)<input type="number" inputmode="decimal" step="0.1" min="0" placeholder="e.g. 58.2" aria-label="Time in seconds, set ' + (i + 1) + '" data-act="set-time" data-ex="' + escapeHtml(exer.id) + '" data-i="' + i + '" value="' + escapeHtml(rec.time || "") + '"></label></div>';
+        }
+        html += "</div>";
       } else {
         html += "<div>";
         html += '<div class="set-copy">Set ' + (i + 1) + " of " + exer.sets + "</div>";
@@ -2537,7 +2609,164 @@
       }
       html += "</div>";
     }
-    html += "</div></div>";
+    html += "</div>";
+    if (exer.calmach) {
+      var bandRec = getSet(state.week, state.day, exer.id, 0);
+      html += '<div class="grid-2" style="margin-top:12px">';
+      html += '<label class="field">Band level / setting<input type="text" data-act="set-band" data-ex="' + escapeHtml(exer.id) + '" value="' + escapeHtml(bandRec.band || "") + '" placeholder="Light to moderate"></label>';
+      html += '<label class="field">Notes<input type="text" data-act="set-notes" data-ex="' + escapeHtml(exer.id) + '" value="' + escapeHtml(bandRec.notes || "") + '" placeholder="Landings, height"></label>';
+      html += "</div>";
+    }
+    if (exer.timer === "highknees") {
+      var from = exer.countdownFrom || 10;
+      var roundsRec = getSet(state.week, state.day, exer.id, 0);
+      html += '<div class="hk-timer">';
+      html += '<div class="hk-readout" id="hk-readout">' + from + "</div>";
+      html += '<p class="hk-phase" id="hk-phase">Tap start for the first round (' + from + "s). Short rest between rounds, then down to 1s.</p>";
+      html += '<div class="row-actions">';
+      html += '<button type="button" class="primary" id="hk-toggle" data-act="hk-start" data-from="' + from + '">Start countdown</button>';
+      html += '<button type="button" data-act="hk-reset" data-from="' + from + '">Reset</button>';
+      html += "</div>";
+      html += '<label class="field" style="margin-top:12px;text-align:left">Rounds completed<input type="number" inputmode="numeric" min="0" max="' + from + '" id="hk-rounds" data-act="set-reps" data-ex="' + escapeHtml(exer.id) + '" data-i="0" value="' + escapeHtml(roundsRec.reps || "") + '" placeholder="0–' + from + '"></label>';
+      html += "</div>";
+    }
+    html += "</div>";
+    return html;
+  }
+
+  var hkTimer = { on: false, phase: "idle", from: 10, round: 10, leftMs: 0, last: 0, id: 0 };
+
+  function startHkTimer(from) {
+    from = Number(from) || 10;
+    if (hkTimer.on) { pauseHkTimer(); return; }
+    if (hkTimer.phase === "idle" || hkTimer.phase === "done") {
+      hkTimer.from = from;
+      hkTimer.round = from;
+      hkTimer.phase = "work";
+      hkTimer.leftMs = from * 1000;
+    }
+    hkTimer.on = true;
+    hkTimer.last = Date.now();
+    if (hkTimer.id) clearInterval(hkTimer.id);
+    hkTimer.id = setInterval(tickHkTimer, 100);
+    paintHkTimer();
+  }
+
+  function pauseHkTimer() {
+    if (hkTimer.on && hkTimer.last) hkTimer.leftMs -= (Date.now() - hkTimer.last);
+    hkTimer.on = false;
+    if (hkTimer.id) { clearInterval(hkTimer.id); hkTimer.id = 0; }
+    paintHkTimer();
+  }
+
+  function resetHkTimer(from) {
+    pauseHkTimer();
+    hkTimer.phase = "idle";
+    hkTimer.from = Number(from) || hkTimer.from || 10;
+    hkTimer.round = hkTimer.from;
+    hkTimer.leftMs = 0;
+    paintHkTimer();
+  }
+
+  function completeHkRound() {
+    var rec = getSet(state.week, state.day, "rhk", 0);
+    var n = parseInt(rec.reps, 10);
+    if (!isFinite(n) || n < 0) n = 0;
+    n += 1;
+    var patch = { reps: String(n) };
+    if (n >= hkTimer.from) patch.done = true;
+    setSet(state.week, state.day, "rhk", 0, patch);
+    var input = document.getElementById("hk-rounds");
+    if (input) input.value = String(n);
+    var box = document.querySelector('input[data-act="set-done"][data-ex="rhk"]');
+    if (box && patch.done) {
+      box.checked = true;
+      var row = box.closest(".set-row");
+      if (row) row.classList.add("done");
+    }
+  }
+
+  function tickHkTimer() {
+    if (!hkTimer.on) return;
+    var now = Date.now();
+    hkTimer.leftMs -= (now - hkTimer.last);
+    hkTimer.last = now;
+    if (hkTimer.leftMs <= 0) {
+      if (hkTimer.phase === "work") {
+        completeHkRound();
+        if (hkTimer.round <= 1) {
+          hkTimer.phase = "done";
+          hkTimer.on = false;
+          hkTimer.leftMs = 0;
+          if (hkTimer.id) { clearInterval(hkTimer.id); hkTimer.id = 0; }
+          paintHkTimer();
+          return;
+        }
+        hkTimer.round -= 1;
+        hkTimer.phase = "rest";
+        hkTimer.leftMs = 5000;
+      } else if (hkTimer.phase === "rest") {
+        hkTimer.phase = "work";
+        hkTimer.leftMs = hkTimer.round * 1000;
+      }
+    }
+    paintHkTimer();
+  }
+
+  function paintHkTimer() {
+    var read = document.getElementById("hk-readout");
+    var phase = document.getElementById("hk-phase");
+    var btn = document.getElementById("hk-toggle");
+    if (!read) return;
+    if (hkTimer.phase === "idle") {
+      read.textContent = String(hkTimer.from || 10);
+      if (phase) phase.textContent = "Tap start for the first round (" + (hkTimer.from || 10) + "s). Short rest between rounds, then down to 1s.";
+      if (btn) btn.textContent = "Start countdown";
+      return;
+    }
+    if (hkTimer.phase === "done") {
+      read.textContent = "0";
+      if (phase) phase.textContent = "Done — " + hkTimer.from + " rounds logged.";
+      if (btn) btn.textContent = "Start countdown";
+      return;
+    }
+    var sec = Math.max(0, Math.ceil(hkTimer.leftMs / 1000));
+    read.textContent = String(sec);
+    if (phase) {
+      if (hkTimer.phase === "work") phase.textContent = "Work — " + hkTimer.round + "s round" + (hkTimer.on ? "" : " (paused)");
+      else if (hkTimer.phase === "rest") phase.textContent = "Short rest — next up is the " + hkTimer.round + "s round" + (hkTimer.on ? "" : " (paused)");
+    }
+    if (btn) btn.textContent = hkTimer.on ? "Pause" : "Resume";
+  }
+
+  function renderFootBlock(plan) {
+    var html = '<div class="card"><div class="card-head"><h2>Foot / ankle warm-up</h2>' + categoryTag("prehab") + "</div>";
+    html += '<p class="callout">' + escapeHtml(FOOT_NOTE) + "</p>";
+    html += '<p class="page-note">About 10 minutes, barefoot on a mat, turf, or grass. Then shoes on for Calmach jumps, lifting, or court conditioning.</p>';
+    var list = plan.exercises || [], i, exer;
+    for (i = 0; i < list.length; i++) {
+      exer = list[i];
+      if (!exer.footBlock) continue;
+      html += '<div class="foot-item">' + renderExercise(exer) + "</div>";
+    }
+    html += "</div>";
+    return html;
+  }
+
+  function renderRecoveryPage() {
+    var daily = dayDaily();
+    var html = '<div class="screen">';
+    html += topbar("Recovery", "Sauna, water, and rest");
+    html += '<div class="screen-body">';
+    html += '<div class="card"><h2>Sauna</h2>';
+    html += "<p>10–15 minutes, 3–4 times a week. Best on gym-lifting evenings (Monday, Tuesday, or Wednesday), paired with boots. Never right before practice or games. Drink 16–20 oz of water before and after.</p>";
+    html += '<p class="callout">' + escapeHtml(SAUNA_NOTE) + "</p>";
+    html += "<p>If you do both the sauna and a plunge on a non-lifting day, finish with the plunge.</p>";
+    html += '<label class="field">Sauna today (minutes)<input type="number" inputmode="numeric" min="0" step="1" data-act="daily-sauna" value="' + escapeHtml(daily.sauna || "") + '" placeholder="10–15"></label>';
+    html += "</div>";
+    html += '<div class="card"><h2>Rest of the week</h2>';
+    html += "<p>Sleep 8–10 hours. Keep meals and the bedtime shake the same on rest days. Easy stretching is fine. Guard conditioning stays off Monday and Tuesday evenings.</p>";
+    html += "</div></div></div>";
     return html;
   }
 
@@ -2616,15 +2845,17 @@
     if (prog.total) html += progressBarHtml(prog.done, prog.total, "Sets done");
     html += "</div></div>";
     html += '<div class="card"><div class="card-head"><h2>This week\'s plyo contacts</h2>' + categoryTag("plyo") + "</div>";
-    html += '<p class="meta"><strong>' + contacts.total + " unresisted contacts</strong> planned across the gym primer and the two home jump days (Days 1, 4, and 5). " + escapeHtml(contacts.note) + "</p>";
-    html += '<p class="cue">Calmach is only on the two home jump days and is not in the contact count. Stop if landings get loud.</p></div>';
+    html += '<p class="meta"><strong>' + contacts.total + " jump contacts</strong> this week (Calmach + Monday primer + barefoot pogos). " + escapeHtml(contacts.note) + "</p>";
+    html += '<p class="cue">Shoes on for Calmach and all lifting. Stop if landings get loud.</p></div>';
     if (plan.retest) {
       html += '<div class="card"><h2>Week 16 retest</h2><p>After the warm-up and a few crisp jumps, retest standing and approach jump reach, bodyweight, and a timed 10–20 yard sprint. Log the numbers in the Progress tab. This is a test day, not a max-lift day.</p></div>';
     }
     html += '<div class="card"><h2>Daily check</h2><div class="grid-2">';
     html += '<label class="field">Bodyweight (lb)<input type="number" inputmode="decimal" step="0.1" min="0" data-act="daily-bw" value="' + escapeHtml(daily.bw || "") + '" placeholder="140"></label>';
     html += '<label class="field">Sleep (hours)<input type="number" inputmode="decimal" step="0.1" min="0" max="24" data-act="daily-sleep" value="' + escapeHtml(daily.sleep || "") + '" placeholder="8–10"></label>';
-    html += "</div></div>";
+    html += "</div>";
+    html += '<label class="field" style="margin-top:8px">Sauna (minutes)<input type="number" inputmode="numeric" min="0" step="1" data-act="daily-sauna" value="' + escapeHtml(daily.sauna || "") + '" placeholder="10–15"></label>';
+    html += "</div>";
 
     if (plan.kind === "train") {
       html += '<div class="card"><h2>Warm-up</h2>' + renderSteps(WARMUP) + "</div>";
@@ -2697,11 +2928,11 @@
     html += '<p class="hint">Start is 140 lb at 5\'10". The dashed line is +15 lb. The full 15–20 lb goal will likely span more than this 16-week block.</p></div>';
 
     html += '<div class="card"><h2>Monthly vertical, reach, and sprint test</h2>';
-    html += '<p class="cue">Test at the end of Weeks 4, 8, 12, and 16 (Week 16 is a taper and retest). A Week 1 baseline is kept if you already logged one. Use the same warm-up every time. Enter reach height in inches from the floor, and a 10–20 yard sprint time in seconds. This is a jump and sprint test, not a max-lift day.</p>';
+    html += '<p class="cue">Test at the end of Weeks 4, 8, 12, and 16 (Week 16 is a taper and retest). A Week 1 baseline is kept if you already logged one. Use the same warm-up every time. Enter reach height in inches from the floor, a 10–20 yard sprint time in seconds, and a 17s time (sideline-to-sideline × 17, target under 60 seconds). This is a jump, sprint, and 17s test, not a max-lift day.</p>';
     html += '<label class="field">Test<select data-act="test-slot">';
     var names = [["w4","End of Week 4"],["w8","End of Week 8"],["w12","End of Week 12"],["w16","End of Week 16 · retest"]];
     var w1 = state.tests.w1 || {};
-    if (w1.standing || w1.jump || w1.approach || w1.sprint || state.testSlot === "w1") {
+    if (w1.standing || w1.jump || w1.approach || w1.sprint || w1.seventeen || state.testSlot === "w1") {
       names.unshift(["w1", "Baseline · Week 1"]);
     }
     for (i = 0; i < names.length; i++) {
@@ -2715,6 +2946,7 @@
     html += "</div>";
     html += '<label class="field" style="margin-top:8px">Approach reach (in)<input type="number" inputmode="decimal" step="0.1" data-act="test-f" data-f="approach" value="' + escapeHtml(cur.approach || "") + '" placeholder="Optional"></label>';
     html += '<label class="field" style="margin-top:8px">10–20 yd sprint (sec)<input type="number" inputmode="decimal" step="0.01" min="0" data-act="test-f" data-f="sprint" value="' + escapeHtml(cur.sprint || "") + '" placeholder="e.g. 3.10"></label>';
+    html += '<label class="field" style="margin-top:8px">17s (sec)<input type="number" inputmode="decimal" step="0.1" min="0" data-act="test-f" data-f="seventeen" value="' + escapeHtml(cur.seventeen || "") + '" placeholder="target under 60"></label>';
     var standV = verticalIn(state.testSlot, "standing", "jump");
     var apprV = verticalIn(state.testSlot, "standing", "approach");
     if (standV !== null || apprV !== null) {
@@ -2731,7 +2963,7 @@
       rows += "<tr><td>" + labels[slots[i]] + "</td><td class=\"num\">" + escapeHtml(t.standing || "—") + "</td><td class=\"num\">" + escapeHtml(t.jump || "—") + "</td><td class=\"num\">" + (sv !== null ? sv + " in" : "—") + "</td><td class=\"num\">" + escapeHtml(t.sprint || "—") + "</td></tr>";
     }
     if (rows) {
-      html += "<table><thead><tr><th>Test</th><th class=\"num\">Stand</th><th class=\"num\">Jump</th><th class=\"num\">Vertical</th><th class=\"num\">10–20 yd</th></tr></thead><tbody>" + rows + "</tbody></table>";
+      html += "<table><thead><tr><th>Test</th><th class=\"num\">Stand</th><th class=\"num\">Jump</th><th class=\"num\">Vertical</th><th class=\"num\">10–20 yd</th><th class=\"num\">17s</th></tr></thead><tbody>" + rows + "</tbody></table>";
     }
     html += "</div>";
 
@@ -2778,21 +3010,21 @@
 
   function renderGuide() {
     var html = '<div class="card"><h2>The week</h2>';
-    html += '<p class="cue">Five training days and two recovery days, every week, for 16 weeks in three phases. Calmach and mixed plyos are Home sessions; resistance training is at the Gym. Gym days are fuller hypertrophy-style sessions (about 6–8 lifts, 60–75 minutes). Weeks 1–2 are calibration weeks for working weights. Weeks 6 and 11 are deloads (fewer sets, 10–15% lighter suggested loads, and about half the contacts and sprints). Week 16 is a taper and retest on Day 3. Tests are at Weeks 4, 8, 12, and 16, plus a Week 1 baseline. High school season ends in February; set a Monday start date on the Plan page if you want calendar dates on each week.</p>';
+    html += '<p class="cue">Five training days and two recovery days, every week, for 16 weeks in three phases. Calmach is a Home session using Blake’s resisted jump routine; resistance training is at the Gym. Gym days are fuller hypertrophy-style sessions (about 6–8 lifts, 60–75 minutes). Weeks 1–2 are calibration weeks for working weights. Weeks 6 and 11 are deloads (fewer sets, 10–15% lighter suggested loads, and about half the Calmach volume and sprints). Week 16 is a taper and retest on Day 3. Tests (jump, reach, sprint, and 17s) are at Weeks 4, 8, 12, and 16, plus a Week 1 baseline. High school season ends in February; set a Monday start date on the Plan page if you want calendar dates on each week.</p>';
     html += "<table class=\"week-table\"><thead><tr><th>Day</th><th>Where</th><th>Session</th></tr></thead><tbody>";
     html += "<tr><td>Day 1 · Mon</td><td>Gym</td><td>Lower-body strength plus a brief 2 × 3 box jump or CMJ primer (no Calmach)</td></tr>";
     html += "<tr><td>Day 2 · Tue</td><td>Gym / court</td><td>Loaded press and hard pull, then Apex shooting (Gym/Home court)</td></tr>";
     html += "<tr><td>Day 3 · Wed</td><td>Gym/Home court</td><td>The week’s speed work on fresh legs, then an optional ~30 min upper / full-body gym add-on. Week 16 retest is here.</td></tr>";
-    html += "<tr><td>Day 4 · Thu</td><td>Home</td><td>Harder mixed plyos + Calmach (~20–30 min after a full warm-up), then ball handling</td></tr>";
-    html += "<tr><td>Day 5 · Fri</td><td>Home / court</td><td>Lighter plyos + Calmach, then core and Apex shooting (Gym/Home court)</td></tr>";
-    html += "<tr><td>Day 6 · Sat</td><td>Gym/Home court</td><td>Easy aerobic or easy shooting — no interval sprints</td></tr>";
+    html += "<tr><td>Day 4 · Thu</td><td>Home</td><td>Barefoot foot / ankle warm-up, then shoes on for the full Calmach routine (phase-scaled), then ball handling</td></tr>";
+    html += "<tr><td>Day 5 · Fri</td><td>Home / court</td><td>Barefoot foot / ankle warm-up, then a light Calmach session, then core and Apex shooting (Gym/Home court)</td></tr>";
+    html += "<tr><td>Day 6 · Sat</td><td>Gym/Home court</td><td>Foot / ankle block, then light guard conditioning (weeks 1–11) or a fuller pre-season block (weeks 12–16). Skip conditioning if there is an AAU game or practice today or tomorrow.</td></tr>";
     html += "<tr><td>Day 7 · Sun</td><td>Rest</td><td>Full rest</td></tr>";
     html += "</tbody></table>";
     html += '<p class="cue" style="margin-top:10px">Why the week is built this way: a hard jump day never sits the day before gym lower. Monday legs and Thursday hard jumps are about 72 hours apart. Friday is a light jump day, then Saturday easy and Sunday rest, so the legs have a full weekend before Monday’s lifts. Wednesday speed is 48 hours after Monday legs and comes before Thursday jumps, so the sprints stay fresh. Two recovery days are Saturday (easy only) and Sunday (full rest).</p>';
     html += "<table class=\"week-table\" style=\"margin-top:12px\"><thead><tr><th>Phase</th><th>Weeks</th><th>Focus</th></tr></thead><tbody>";
-    html += '<tr class="p2"><td>1 Hypertrophy</td><td>1–6</td><td>Full gym days, main lifts 4 × 6–8, accessories in the 8–15 range, about 110–130 contacts. Weeks 1–2 calibration. Week 6 deload. Target 1–2 RIR on the last set.</td></tr>';
-    html += '<tr class="p3"><td>2 Strength</td><td>7–11</td><td>Main lifts 4 × 4–6 heavier, still not a max. Accessories stay in a muscle-gain range, about 140–160 contacts. Week 11 deload.</td></tr>';
-    html += '<tr class="p4"><td>3 Power</td><td>12–16</td><td>Main lifts 3 × 3–5 fast, power jumps on home days, about 140–160 contacts, then Week 16 taper and Day 3 retest.</td></tr>';
+    html += '<tr class="p2"><td>1 Hypertrophy</td><td>1–6</td><td>Full gym days, main lifts 4 × 6–8, accessories in the 8–15 range, Calmach at 2 sets on most Thursday jumps (single-leg 2 × 6 each). About 450 jump contacts. Saturday light guard conditioning only. Weeks 1–2 calibration. Week 6 deload. Target 1–2 RIR on the last set.</td></tr>';
+    html += '<tr class="p3"><td>2 Strength</td><td>7–11</td><td>Main lifts 4 × 4–6 heavier, still not a max. Accessories stay in a muscle-gain range. Thursday Calmach builds to Blake’s full prescription with full rest. About 500 jump contacts. Saturday light guard conditioning only. Week 11 deload.</td></tr>';
+    html += '<tr class="p4"><td>3 Power</td><td>12–16</td><td>Main lifts 3 × 3–5 fast, Thursday Calmach at full volume with max-height emphasis, about 500 jump contacts. Pre-season guard conditioning twice a week (Wed after speed + Sat). Week 16 taper and Day 3 retest.</td></tr>';
     html += "</tbody></table></div>";
 
     html += '<div class="card"><h2>How to add load</h2><p>' + escapeHtml(SUGGEST_NOTE) + "</p>";
@@ -2803,15 +3035,28 @@
     html += '<div class="card"><h2>Why this works</h2>';
     html += "<p>Youth resistance training can be effective and safe when technique, supervision, and gradual progression come first, as in the NSCA 2009 youth resistance-training position statement.</p>";
     html += "<p>A 2016 meta-analysis by Lesinski and colleagues found dose-sensitive improvements in youth strength, jump, and speed when training is programmed with enough rest. More recent work by Zhou and colleagues (2024) continues to support combining resistance training with plyometrics for youth speed and power.</p>";
-    html += "<p>This plan uses those ideas: lift with good form, keep unresisted jump contacts in a moderate weekly range (about 110–130 in Phase 1, then about 140–160 in Phases 2–3), sprint with full rest, and deload in Weeks 6 and 11. A 15–20 lb gain is a longer-term target and will likely span more than this 16-week block.</p>";
+    html += "<p>This plan uses those ideas: lift with good form, use Blake’s Calmach routine on home jump days (with a barefoot foot / ankle warm-up), sprint with full rest, keep early-block guard conditioning light because of AAU, then ramp it before the school season, and deload in Weeks 6 and 11. A 15–20 lb gain is a longer-term target and will likely span more than this 16-week block.</p>";
     html += "<ul class=\"guide\">";
     html += '<li><a href="https://www.nsca.com/globalassets/about/position-statements/position_stand_youth_resistance_training---2009.pdf">NSCA 2009 youth resistance-training position statement (PDF)</a></li>';
     html += '<li><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC4941165/">Lesinski et al., 2016 (PMC4941165)</a></li>';
     html += '<li><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC11457583/">Zhou et al., 2024 (PMC11457583)</a></li>';
     html += "</ul></div>";
 
-    html += '<div class="card"><h2>Warm-up (every training day)</h2>' + renderSteps(WARMUP) + "</div>";
+    html += '<div class="card"><h2>Warm-up</h2>' + renderSteps(WARMUP);
+    html += '<p class="cue">Gym and Wednesday speed days use this warm-up. Thursday, Friday, and Saturday start with the barefoot foot / ankle block instead (~10 minutes): toe yoga 2 × 10, short-foot holds 3 × 20s, single-leg balance 3 × 30s each (eyes closed in weeks 7+), slow single-leg calf raises 3 × 12 each, and barefoot pogo hops 2 × 20 on a mat or grass only. ' + escapeHtml(FOOT_NOTE) + "</p></div>";
     html += '<div class="card"><h2>Cooldown (every training day)</h2>' + renderSteps(COOLDOWN) + '<p class="cue">On recovery days, use these stretches with 45–60 second holds.</p></div>';
+
+    html += '<div class="card"><h2>Blake’s Calmach routine</h2>';
+    html += "<p>Thursday is the hard home jump day. The full routine is: Resisted Pogo Vertical Jumps 3 × 10 (minimal ground time); Resisted Vertical Power Jumps 3 × 10 (jump as high as you can each time); Resisted Single-Leg Jumps 2 × 10 each (power off one foot for layups and dunks); Resisted Lunge Jumps 3 × 10 (5 each leg); Resisted Knee Hop Jumps 10 total; Resisted High Knees countdown 10s down to 1s with short rest; and Resisted Step-Ups on a chair 3 × 10 each leg.</p>";
+    html += "<p>Hypertrophy (weeks 1–6): 2 sets on most, single-leg jumps 2 × 6 each, and keep the countdown high knees and step-ups. Strength (weeks 7–11): build toward the full prescription, with full rest between jump sets. Power (weeks 12–16): the full routine, with max-height emphasis and full rest. Weeks 6, 11, and 16 are about half. Friday is always light: pogos 2 × 10, vertical power jumps 2 × 5 at quality, and step-ups 2 × 8 each (half on deload and taper weeks).</p>";
+    html += "<p>Raise Calmach tension only when landings stay quiet. " + escapeHtml(STOP_LOUD) + "</p></div>";
+
+    html += '<div class="card"><h2>Guard conditioning</h2>';
+    html += "<p>This stays light in weeks 1–11 because of AAU: one short session on Saturday only (~10–12 minutes), 3–4 rounds of full-court defensive zig-zag slides and sprint-backpedal-slide (baseline → FT → half → far FT → baseline), plus one timed 17s (sideline-to-sideline × 17, target under 60 seconds, rest 2:00). " + escapeHtml(AAU_SKIP) + "</p>";
+    html += "<p>Weeks 12–16 are a pre-season ramp: two sessions a week (Wednesday after speed work, and Saturday), with 3–4 timed 17s and game-like court interval bursts. Week 16 is about half. Keep it off Monday and Tuesday evenings. Log 17s times and rounds in the session, and log a 17s test in Tests at weeks 4, 8, 12, and 16.</p></div>";
+
+    html += '<div class="card"><h2>Sauna and recovery</h2>';
+    html += "<p>Sauna is 10–15 minutes, 3–4 times a week. Best on gym-lifting evenings (Monday, Tuesday, or Wednesday), paired with boots. Never right before practice or games. Drink 16–20 oz of water before and after. " + escapeHtml(SAUNA_NOTE) + " If you do both the sauna and a plunge on a non-lifting day, finish with the plunge. Log minutes on the Recovery page.</p></div>";
 
     html += '<div class="card"><h2>Eat to gain muscle</h2>';
     html += "<p>This is a whole-food plan for adding muscle, not a cut. Eat three meals and two snacks every day, including rest days, and drink water through the day. Sleep 8–10 hours; it is part of the work. If bodyweight is not up about 0.5 to 1 lb after two weeks, add a snack or bigger portions. If it is climbing much faster and you feel heavy, hold portions steady.</p>";
@@ -2862,7 +3107,7 @@
       if (typeof data.sessionWeek === "string") base.sessionWeek = data.sessionWeek;
       if (typeof data.sessionDay === "string") base.sessionDay = data.sessionDay;
       base.finished = !!data.finished;
-      var ok = { home: 1, session: 1, done: 1, plan: 1, checkin: 1, tests: 1, guide: 1, backup: 1, sync: 1 };
+      var ok = { home: 1, session: 1, done: 1, plan: 1, checkin: 1, tests: 1, guide: 1, backup: 1, sync: 1, recovery: 1 };
       if (!ok[base.screen]) base.screen = "home";
       return base;
     } catch (err) {
@@ -2941,15 +3186,22 @@
     plan = plan || currentPlan();
     var pages = [];
     pages.push({ type: "intro", title: plan.title || "Session" });
-    if (plan.kind === "train") pages.push({ type: "steps", title: "Warm-up", steps: WARMUP });
-    if (plan.retest) pages.push({ type: "note", title: "Week 16 retest", text: "After the warm-up, retest standing and approach jump reach, bodyweight, and a timed 10–20 yard sprint. Log the numbers in Tests. This is a test day, not a max-lift day." });
+    if (plan.kind === "train" && !plan.footWarmup) pages.push({ type: "steps", title: "Warm-up", steps: WARMUP });
+    if (plan.footWarmup) pages.push({ type: "footblock", title: "Foot / ankle warm-up" });
+    if (plan.retest) pages.push({ type: "note", title: "Week 16 retest", text: "After the warm-up, retest standing and approach jump reach, bodyweight, a timed 10–20 yard sprint, and a 17s (sideline-to-sideline × 17, target under 60 seconds). Log the numbers in Tests. This is a test day, not a max-lift day." });
+    if (plan.seventeenTest && !plan.retest) pages.push({ type: "note", title: "17s test", text: "After a full rest, run a timed 17s (sideline-to-sideline × 17, target under 60 seconds) and log it in Tests. This is in addition to your jump and sprint tests. " + AAU_SKIP });
     if (plan.recovery) pages.push({ type: "note", title: plan.kind === "rest" ? "Rest day" : "Recovery", text: plan.recovery });
-    var i, exer, shownOpt = false;
+    var i, exer, shownOpt = false, shownCond = false;
     var list = plan.exercises || [];
     for (i = 0; i < list.length; i++) {
       exer = list[i];
+      if (exer.footBlock) continue;
+      if (exer.bball && !shownCond) {
+        pages.push({ type: "note", title: "Guard conditioning", text: plan.condNote || ("Basketball conditioning. " + AAU_SKIP + " Keep this off Monday and Tuesday evenings.") });
+        shownCond = true;
+      }
       if (exer.optional && !shownOpt) {
-        pages.push({ type: "note", title: "Optional gym add-on (~30 min)", text: "Speed first. Only do this if the sprints were crisp and the legs still feel fresh. Skip it on a heavy or rusty day." });
+        pages.push({ type: "note", title: "Optional gym add-on (~30 min)", text: "Speed first, then conditioning if it is on the plan. Only do the lift if the sprints were crisp and the legs still feel fresh. Skip it on a heavy or rusty day." });
         shownOpt = true;
       }
       pages.push({ type: "exercise", title: exer.name, exer: exer });
@@ -3082,6 +3334,7 @@
     html += '<button type="button" class="tile" data-act="nav-checkin">Check-in<span>Weight and height</span></button>';
     html += '<button type="button" class="tile" data-act="nav-tests">Tests<span>Jump, reach, and sprint</span></button>';
     html += '<button type="button" class="tile" data-act="nav-sync">Sync<span>Share progress with another phone</span></button>';
+    html += '<button type="button" class="tile" data-act="nav-recovery">Recovery<span>Sauna, water, and rest notes</span></button>';
     html += "</div>";
     html += '<button type="button" class="linkish" data-act="nav-guide">Guide and notes</button>';
     html += '<button type="button" class="linkish" data-act="nav-backup" style="margin-left:16px">Backup</button>';
@@ -3105,7 +3358,7 @@
       html += '<div class="day-card"><div class="card-head"><h2>' + escapeHtml(plan.title) + "</h2>" + locationTag(plan.location || "rest") + modePillsHtml(state.week) + "</div>";
       html += '<p class="page-note">' + escapeHtml(plan.focus) + "</p>";
       var contacts = weeklyContactInfo(state.week);
-      html += '<p class="meta">' + contacts.total + " unresisted plyo contacts this week. " + escapeHtml(contacts.note) + "</p>";
+      html += '<p class="meta">' + contacts.total + " jump contacts this week. " + escapeHtml(contacts.note) + "</p>";
       var prog = sessionProgress(plan);
       if (prog.total) html += progressBarHtml(prog.done, prog.total, "Sets done");
       var daily = dayDaily();
@@ -3113,6 +3366,7 @@
       html += '<label class="field">Bodyweight (lb)<input type="number" inputmode="decimal" step="0.1" min="0" data-act="daily-bw" value="' + escapeHtml(daily.bw || "") + '" placeholder="140"></label>';
       html += '<label class="field">Sleep (hours)<input type="number" inputmode="decimal" step="0.1" min="0" max="24" data-act="daily-sleep" value="' + escapeHtml(daily.sleep || "") + '" placeholder="8–10"></label>';
       html += "</div>";
+      html += '<label class="field" style="margin-top:8px">Sauna (minutes)<input type="number" inputmode="numeric" min="0" step="1" data-act="daily-sauna" value="' + escapeHtml(daily.sauna || "") + '" placeholder="10–15"></label>';
       var hasLoaded = (plan.exercises || []).some(function (e) { return !e.noLoad; });
       if (hasLoaded) html += '<p class="suggest-note">' + escapeHtml(SUGGEST_NOTE) + "</p>";
       html += "</div>";
@@ -3120,6 +3374,8 @@
       html += '<div class="card"><h2>' + escapeHtml(page.title) + "</h2>" + renderSteps(page.steps) + "</div>";
     } else if (page.type === "note") {
       html += '<div class="card"><h2>' + escapeHtml(page.title) + '</h2><p class="page-note">' + escapeHtml(page.text) + "</p></div>";
+    } else if (page.type === "footblock") {
+      html += renderFootBlock(plan);
     } else if (page.type === "exercise") {
       html += '<div class="exercise-stage">' + renderExercise(page.exer) + "</div>";
     } else if (page.type === "calmach") {
@@ -3183,14 +3439,14 @@
     html += "</ul>";
     html += '<label class="field" style="margin-top:16px">Start date (use a Monday)<input type="date" id="start-date" data-act="start-date" value="' + escapeHtml(state.startDate || "") + '"></label>';
     var contacts = weeklyContactInfo(state.week);
-    html += '<p class="meta" style="margin-top:12px">' + contacts.total + " unresisted plyo contacts this week. " + escapeHtml(contacts.note) + "</p>";
+    html += '<p class="meta" style="margin-top:12px">' + contacts.total + " jump contacts this week. " + escapeHtml(contacts.note) + "</p>";
     html += "</div></div>";
     return html;
   }
 
   function renderTests() {
     var html = '<div class="screen">';
-    html += topbar("Tests", "Weeks 4, 8, 12, and 16");
+    html += topbar("Tests", "Jump, sprint, and 17s · Weeks 4, 8, 12, and 16");
     html += '<div class="screen-body">';
     var latest = latestCheckIn();
     var shots = shootingTotals();
@@ -3209,7 +3465,7 @@
     html += '<label class="field">Test<select data-act="test-slot">';
     var names = [["w4", "End of Week 4"], ["w8", "End of Week 8"], ["w12", "End of Week 12"], ["w16", "End of Week 16 · retest"]];
     var w1 = state.tests.w1 || {};
-    if (w1.standing || w1.jump || w1.approach || w1.sprint || state.testSlot === "w1") {
+    if (w1.standing || w1.jump || w1.approach || w1.sprint || w1.seventeen || state.testSlot === "w1") {
       names.unshift(["w1", "Baseline · Week 1"]);
     }
     for (i = 0; i < names.length; i++) {
@@ -3223,6 +3479,7 @@
     html += "</div>";
     html += '<label class="field" style="margin-top:8px">Approach reach (in)<input type="number" inputmode="decimal" step="0.1" data-act="test-f" data-f="approach" value="' + escapeHtml(cur.approach || "") + '"></label>';
     html += '<label class="field" style="margin-top:8px">10–20 yd sprint (sec)<input type="number" inputmode="decimal" step="0.01" min="0" data-act="test-f" data-f="sprint" value="' + escapeHtml(cur.sprint || "") + '" placeholder="e.g. 3.10"></label>';
+    html += '<label class="field" style="margin-top:8px">17s (sec)<input type="number" inputmode="decimal" step="0.1" min="0" data-act="test-f" data-f="seventeen" value="' + escapeHtml(cur.seventeen || "") + '" placeholder="target under 60"></label>';
     var standV = verticalIn(state.testSlot, "standing", "jump");
     var apprV = verticalIn(state.testSlot, "standing", "approach");
     if (standV !== null || apprV !== null) {
@@ -3235,11 +3492,11 @@
     for (i = 0; i < slots.length; i++) {
       var trow = state.tests[slots[i]] || {};
       var sv = verticalIn(slots[i], "standing", "jump");
-      if (!trow.standing && !trow.jump && !trow.approach && !trow.sprint) continue;
-      rows += "<tr><td>" + labels[slots[i]] + "</td><td class=\"num\">" + escapeHtml(trow.standing || "—") + "</td><td class=\"num\">" + escapeHtml(trow.jump || "—") + "</td><td class=\"num\">" + (sv !== null ? sv + " in" : "—") + "</td><td class=\"num\">" + escapeHtml(trow.sprint || "—") + "</td></tr>";
+      if (!trow.standing && !trow.jump && !trow.approach && !trow.sprint && !trow.seventeen) continue;
+      rows += "<tr><td>" + labels[slots[i]] + "</td><td class=\"num\">" + escapeHtml(trow.standing || "—") + "</td><td class=\"num\">" + escapeHtml(trow.jump || "—") + "</td><td class=\"num\">" + (sv !== null ? sv + " in" : "—") + "</td><td class=\"num\">" + escapeHtml(trow.sprint || "—") + "</td><td class=\"num\">" + escapeHtml(trow.seventeen || "—") + "</td></tr>";
     }
     if (rows) {
-      html += "<table><thead><tr><th>Test</th><th class=\"num\">Stand</th><th class=\"num\">Jump</th><th class=\"num\">Vertical</th><th class=\"num\">10–20 yd</th></tr></thead><tbody>" + rows + "</tbody></table>";
+      html += "<table><thead><tr><th>Test</th><th class=\"num\">Stand</th><th class=\"num\">Jump</th><th class=\"num\">Vertical</th><th class=\"num\">10–20 yd</th><th class=\"num\">17s</th></tr></thead><tbody>" + rows + "</tbody></table>";
     }
     html += "</div></div></div>";
     return html;
@@ -3292,6 +3549,7 @@
     else if (ui.screen === "guide") app.innerHTML = renderGuidePage();
     else if (ui.screen === "backup") app.innerHTML = renderBackup();
     else if (ui.screen === "sync") app.innerHTML = renderSyncPage();
+    else if (ui.screen === "recovery") app.innerHTML = renderRecoveryPage();
     else app.innerHTML = renderHome();
     if (syncSettings.code && syncSettings.readOnly && ui.screen !== "sync") {
       var screenBody = app.querySelector(".screen-body");
@@ -3304,12 +3562,16 @@
       }
     }
     var tabs = document.querySelectorAll("#tabbar [data-nav]");
-    var tabFor = { home: "home", plan: "plan", checkin: "checkin", tests: "tests", session: "home", done: "home", guide: "home", backup: "home", sync: "home" };
+    var tabFor = { home: "home", plan: "plan", checkin: "checkin", tests: "tests", session: "home", done: "home", guide: "home", backup: "home", sync: "home", recovery: "home" };
     var current = tabFor[ui.screen] || "home";
     var i;
     for (i = 0; i < tabs.length; i++) {
       if (tabs[i].getAttribute("data-nav") === current) tabs[i].setAttribute("aria-current", "page");
       else tabs[i].removeAttribute("aria-current");
+    }
+    if (typeof paintHkTimer === "function") {
+      if (document.getElementById("hk-readout")) paintHkTimer();
+      else if (typeof hkTimer !== "undefined" && hkTimer.on) pauseHkTimer();
     }
   }
 
@@ -3324,6 +3586,9 @@
     if (act === "nav-guide") { ev.preventDefault(); goTo("guide"); return; }
     if (act === "nav-backup") { ev.preventDefault(); goTo("backup"); return; }
     if (act === "nav-sync") { ev.preventDefault(); goTo("sync"); return; }
+    if (act === "nav-recovery") { ev.preventDefault(); goTo("recovery"); return; }
+    if (act === "hk-start") { ev.preventDefault(); startHkTimer(Number(t.getAttribute("data-from")) || 10); return; }
+    if (act === "hk-reset") { ev.preventDefault(); resetHkTimer(Number(t.getAttribute("data-from")) || 10); return; }
     if (act === "sync-enable") { ev.preventDefault(); enableSync(); return; }
     if (act === "sync-copy") { ev.preventDefault(); copySyncCode(); return; }
     if (act === "sync-disconnect") { ev.preventDefault(); disconnectSync(); return; }
@@ -3428,6 +3693,18 @@
       setSet(state.week, state.day, t.getAttribute("data-ex"), Number(t.getAttribute("data-i")), { rir: t.value });
       return;
     }
+    if (act === "set-time") {
+      setSet(state.week, state.day, t.getAttribute("data-ex"), Number(t.getAttribute("data-i")), { time: t.value });
+      return;
+    }
+    if (act === "set-band") {
+      setSet(state.week, state.day, t.getAttribute("data-ex"), 0, { band: t.value });
+      return;
+    }
+    if (act === "set-notes") {
+      setSet(state.week, state.day, t.getAttribute("data-ex"), 0, { notes: t.value });
+      return;
+    }
     if (act === "shot-m" || act === "shot-a") {
       var key = kShot(state.week, state.day, t.getAttribute("data-spot"));
       var rowS = state.shooting[key] || { makes: "", atts: "" };
@@ -3456,11 +3733,12 @@
       persist();
       return;
     }
-    if (act === "daily-bw" || act === "daily-sleep") {
+    if (act === "daily-bw" || act === "daily-sleep" || act === "daily-sauna") {
       var dk = dailyKey();
-      var dr = state.daily[dk] || { bw: "", sleep: "" };
+      var dr = state.daily[dk] || { bw: "", sleep: "", sauna: "" };
       if (act === "daily-bw") dr.bw = t.value;
-      else dr.sleep = t.value;
+      else if (act === "daily-sleep") dr.sleep = t.value;
+      else dr.sauna = t.value;
       state.daily[dk] = dr;
       persist();
       return;
@@ -3602,7 +3880,7 @@
   });
   document.getElementById("app").addEventListener("input", function (e) {
     var act = e.target.getAttribute("data-act");
-    if (act === "shot-m" || act === "shot-a" || act === "set-wt" || act === "set-reps" || act === "set-rir" || act === "daily-bw" || act === "daily-sleep" || act === "ci-weight" || act === "ci-feet" || act === "ci-inches" || act === "ci-date" || act === "jump-res" || act === "jump-notes" || act === "cond-time" || act === "cond-notes" || act === "test-f" || act === "start-date") {
+    if (act === "shot-m" || act === "shot-a" || act === "set-wt" || act === "set-reps" || act === "set-rir" || act === "set-time" || act === "set-band" || act === "set-notes" || act === "daily-bw" || act === "daily-sleep" || act === "daily-sauna" || act === "ci-weight" || act === "ci-feet" || act === "ci-inches" || act === "ci-date" || act === "jump-res" || act === "jump-notes" || act === "cond-time" || act === "cond-notes" || act === "test-f" || act === "start-date") {
       onAppChange(e);
     }
   });
