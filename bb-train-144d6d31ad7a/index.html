@@ -2303,11 +2303,13 @@
   }
 
   function escapeHtml(s) {
+    // Entity strings are built from parts so file-upload tooling can't decode them.
+    var A = "&";
     return String(s)
-      .replace(/&/g, "&")
-      .replace(/</g, "<")
-      .replace(/>/g, ">")
-      .replace(/"/g, """);
+      .replace(/&/g, A + "amp;")
+      .replace(/</g, A + "lt;")
+      .replace(/>/g, A + "gt;")
+      .replace(/"/g, A + "quot;");
   }
 
   function parseNum(v) {
