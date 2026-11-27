@@ -399,6 +399,12 @@
     }
     .tag-strength { background: var(--cat-strength); color: #1a1200; }
     .tag-plyo { background: var(--cat-plyo); color: #1a0410; }
+    .tag-ta { background: #ff4d4d; color: #1a0202; }
+    .tag-prehab { background: #a3e635; color: #0f1a02; }
+    .demo-row { margin: 12px 0 0; }
+    .demo-link { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 10px 18px; border-radius: 12px; border: 2px solid #ff4d4d; color: #fff; background: rgba(255, 77, 77, 0.14); font-weight: 700; text-decoration: none; font-size: 1.05rem; }
+    .demo-link:active { background: rgba(255, 77, 77, 0.3); }
+    .demo-note { margin: 6px 0 0; font-size: 0.95rem; color: var(--muted, #b8b8c0); }
     .tag-speed { background: var(--cat-speed); color: #042010; }
     .tag-shooting { background: var(--cat-shooting); color: #041018; }
     .tag-handles { background: var(--cat-handles); color: #1a0820; }
@@ -957,12 +963,12 @@
 
   var WEEKS = ["1","2","3","4","5","6","7","8","9","10","11","12","13","14","15","16"];
   var DAYS = [
-    { id: "1", label: "Day 1 · Mon · Gym lower" },
-    { id: "2", label: "Day 2 · Tue · Gym upper + shoot" },
+    { id: "1", label: "Day 1 · Mon · TA + gym lower" },
+    { id: "2", label: "Day 2 · Tue · TA + gym upper + shoot" },
     { id: "3", label: "Day 3 · Wed · Speed + optional lift" },
     { id: "4", label: "Day 4 · Thu · Home jumps" },
-    { id: "5", label: "Day 5 · Fri · Home jumps (light)" },
-    { id: "6", label: "Day 6 · Sat · Foot work + conditioning" },
+    { id: "5", label: "Day 5 · Fri · Foot work + core (no jumps)" },
+    { id: "6", label: "Day 6 · Sat · TA + foot work + conditioning" },
     { id: "7", label: "Day 7 · Sun · Full rest" }
   ];
 
@@ -1060,6 +1066,7 @@
 
   function categoryFor(exer) {
     if (!exer) return "strength";
+    if (exer.ta) return "ta";
     if (exer.footBlock || exer.kind === "prehab") return "prehab";
     if (exer.kind === "plyo") return "plyo";
     if (exer.kind === "sprint") return "speed";
@@ -1071,6 +1078,7 @@
   function categoryLabel(cat) {
     if (cat === "plyo") return "Plyos/Calmach";
     if (cat === "prehab") return "Foot / ankle";
+    if (cat === "ta") return "Team Ascension";
     if (cat === "speed") return "Speed";
     if (cat === "shooting") return "Shooting/Apex";
     if (cat === "handles") return "Handles";
@@ -1248,14 +1256,23 @@
 
   function weeklyContactInfo(week) {
     var phase = phaseFor(week);
-    var total = contactSum(planFor(phase, "1", week).exercises || []) + contactSum(planFor(phase, "4", week).exercises || []) + contactSum(planFor(phase, "5", week).exercises || []) + contactSum(planFor(phase, "6", week).exercises || []);
+    var byDay = {}, total = 0, d;
+    var countDays = ["1", "2", "4", "5", "6"];
+    for (var i = 0; i < countDays.length; i++) {
+      d = countDays[i];
+      byDay[d] = contactSum(planFor(phase, d, week).exercises || []);
+      total += byDay[d];
+    }
+    var calm = byDay["4"], ta = byDay["1"] + byDay["2"] + byDay["6"];
     var mode = weekMode(week);
-    var phaseTarget = "about 530–550";
+    var phaseTarget = "about 520–545, never above 550";
+    var split = "Calmach Thursday " + calm + " + Team Ascension " + ta + " (Mon " + byDay["1"] + " / Tue " + byDay["2"] + " / Sat " + byDay["6"] + "). No jumps Friday.";
+    var tail = " Jump rope in the TA warm-up, Wednesday sprints, and court conditioning are counted separately.";
     var note;
-    if (mode === "deload") note = "Deload week: Calmach days are about half. Totals include the Monday primer, Calmach jumps, and barefoot pogos on Thu/Fri/Sat. Wednesday sprints and court conditioning are separate.";
-    else if (mode === "taper") note = "Taper and retest week: Calmach days are about half. Totals include the Monday primer, Calmach jumps, and barefoot pogos. Wednesday sprints and court conditioning are separate.";
-    else note = "About " + total + " jump contacts this week (Calmach + Monday primer + barefoot pogos on Thu/Fri/Sat). Phase typical is " + phaseTarget + ". Wednesday sprints and court conditioning are separate.";
-    return { total: total, target: phaseTarget, mode: mode, note: note };
+    if (mode === "deload") note = "Deload week: " + split + " TA is Tuesday and Saturday only, 1 set each." + tail;
+    else if (mode === "taper") note = "Taper and retest week: " + split + " TA is Monday and Saturday only, 1 set each." + tail;
+    else note = split + " Normal weeks are " + phaseTarget + "." + tail;
+    return { total: total, target: phaseTarget, mode: mode, note: note, calmach: calm, ta: ta, taPhase: taPhase(week) };
   }
 
   var FOOT_NOTE = "Shoes ON for Calmach jumps and all lifting. Barefoot only on a mat, turf, or grass. Stop if there's foot or arch pain.";
@@ -1279,7 +1296,7 @@
     return e;
   }
 
-  function thursdayCalmach(phase, deload, taper) {
+  function thursdayCalmach(phase, deload, taper, week) {
     var cut = deload || taper;
     var fullRest = "Full rest between jump sets for quality — at least 90 seconds";
     var powerCue = "Jump as high as you can each time!";
@@ -1292,6 +1309,8 @@
     if (cut) {
       pogoS = 2; pogoR = 10; powS = 2; powR = 10; slS = 2; slR = 6; luS = 2; luR = 10; kneeR = 6; hkFrom = 8; stS = 2; stR = 9;
     }
+    // Team Ascension merge: in TA Phase 1, 3, and 4 weeks the high-knees countdown starts at 6s. Phase 2 weeks are unchanged.
+    if (week && taPhase(week) !== 2) hkFrom = Math.min(hkFrom, 6);
     return [
       calmachEx("rpvj", "Resisted Pogo Vertical Jumps", pogoS, String(pogoR), pogoR, fullRest, "Spend minimal time on the ground. Quiet, elastic contacts. " + STOP_LOUD),
       calmachEx("rvpj", "Resisted Vertical Power Jumps", powS, String(powR), powR, fullRest, powerCue),
@@ -1327,15 +1346,12 @@
       e.kind = "prehab";
       return e;
     }
-    var pogos = plyo("bfpogo", "Barefoot pogo hops", 2, "20", 20, "45–60 seconds", "Small, quiet hops on a mat or grass only — never on a hard bare floor. " + STOP_LOUD);
-    pogos.footBlock = true;
-    pogos.progress = FOOT_NOTE;
+    // Barefoot pogo hops ("bfpogo") were removed when Team Ascension was added; old logs keep the id.
     return [
       footEx("toeyoga", "Toe yoga", 2, "10", "45 seconds", "Spread, lift, and set the toes down one at a time. Barefoot on a mat, turf, or grass."),
       footEx("shortfoot", "Short-foot holds", 3, "20 seconds", "20–30 seconds", "Gently shorten the foot by lifting the arch without curling the toes hard. Soft, steady holds."),
       footEx("slbal", "Single-leg balance", 3, "30 seconds each", "20–30 seconds after both legs", eyes),
-      footEx("slcalf", "Slow single-leg calf raises", 3, "12 each", "45–60 seconds after both legs", "Slow up and slow down. Barefoot on a mat, turf, or grass. Stop if there is foot or arch pain."),
-      pogos
+      footEx("slcalf", "Slow single-leg calf raises", 3, "12 each", "45–60 seconds after both legs", "Slow up and slow down. Barefoot on a mat, turf, or grass. Stop if there is foot or arch pain.")
     ];
   }
 
@@ -1386,6 +1402,124 @@
   }
 
 
+  // ---------------- Team Ascension (8-week course, run twice: laps weeks 1–8 and 9–16) ----------------
+  var TA_LESSON_BASE = "https://stan.store/course/0e1490ea-2cd2-47eb-813a-542ea7124dc1?store=teamascension_store&lesson_id=";
+  var TA_PASSWORD_NOTE = "Opens the Stan course page in a new tab. The course password is needed once on this phone.";
+  var TA_REST = "2–3 minutes between sets";
+  var TA_INTENT = "Max intent every rep, quality over quantity. Do only the sets shown. " + STOP_LOUD + " Shoes on.";
+  var TA_AAU = "AAU game today or tomorrow? Do the activation only. Skip the Team Ascension drills and the conditioning.";
+  var TA_PHASES = {
+    1: { name: "Phase 1 · Ground Force Production", short: "Ground Force", goal: "Ankle stiffness, force production, landing mechanics, reactive foot speed." },
+    2: { name: "Phase 2 · Power Development", short: "Power", goal: "Vertical force, single-leg power, force absorption, takeoff." },
+    3: { name: "Phase 3 · Game Speed Performance", short: "Game Speed", goal: "Acceleration, deceleration, and change of direction through explosive single-leg work." },
+    4: { name: "Phase 4 · Acceleration–Deceleration", short: "Accel/Decel", goal: "Accelerate with power, decelerate with control." }
+  };
+  // id, name, reps text, contacts per set, lesson_id, cue
+  var TA_DRILLS = {
+    ta_pogo: ["Pogo Jumps (TA)", "20 seconds", 40, "39627402", "Minimize ground contact time and stay stiff through the ankles and feet."],
+    ta_sqj: ["Squat Jumps (TA)", "20 seconds", 20, "39627403", "Generate maximum force from the ground and explode vertically."],
+    ta_linhop: ["Linear Line Hops", "20 seconds", 40, "39627404", "Quick contacts while producing force forward and backward over the line."],
+    ta_lathop: ["Lateral Line Hops", "20 seconds", 40, "39633086", "Stay balanced while creating force side-to-side with rapid foot contacts."],
+    ta_sbj: ["Seated Box Jumps", "6 reps", 6, "39627405", "Produce maximum force from a dead stop and explode onto the box. Step down."],
+    ta_slsbj: ["Single-Leg Seated Box Jumps", "6 each leg", 12, "39627406", "Drive power through one leg while keeping stability and body control. Step down."],
+    ta_bj: ["Box Jumps (TA)", "6 reps", 6, "39627407", "Explode aggressively and land softly in an athletic position. Step down."],
+    ta_tsbj: ["Triple Stick Box Jumps", "6 reps", 18, "39635726", "Absorb force under control and stabilize each landing before exploding again."],
+    ta_fttt: ["Split-Leg Fast Twitch Toe-Taps", "20 seconds", 40, "39638920", "Keep sprint posture while producing force forward and backward."],
+    ta_kd: ["Split-Leg Knee Drives", "20 seconds", 20, "39639247", "Create force while keeping balance, control, and athletic posture."],
+    ta_kdtt: ["Split-Leg Knee Drive – Toe Taps", "20 seconds", 20, "39639166", "Switch fast between explosive jumps and quick toe taps while staying athletic."],
+    ta_lkdtt: ["Split-Leg Lateral Knee Drive – Toe Taps", "20 seconds", 20, "39639066", "Generate maximum lateral power while keeping speed, posture, and coordination."],
+    ta_tri: ["Split-Leg Triple Accel & Decel Drops", "20 seconds", 20, "39639749", "3 steps out accelerating, 3 back decelerating. Push hard out, stay balanced braking."],
+    ta_31: ["Split-Leg Accel & Decel 3:1", "20 seconds", 20, "39639750", "3 accelerations out, 1 deceleration back. Keep rhythm and body control."],
+    ta_drops: ["Split-Leg Accel & Decel Drops", "20 seconds", 20, "39639753", "2 out, 1 back. Accelerate aggressively and absorb force in sprint posture."]
+  };
+  var TA_ACTIVATION = {
+    ta_hf_seated: ["Hip Flexor – Seated Leg Lifts", "20 seconds each side", "39627400", "Tall posture, strong core, controlled knee drive."],
+    ta_hf_kneel: ["Hip Flexor – Kneeling Leg Lifts", "20 seconds each side", "39627401", "Drive the knee aggressively, stay balanced and upright."],
+    ta_hiprot: ["Hip Mobility Rotations", "10 each side", "39627905", "Full range with body control and stability."],
+    ta_rope: ["Jump Rope Prep", "30 seconds", "39628170", "Light on your feet, easy rhythm, quick contacts. Warm up, don't get tired."]
+  };
+  // Normal-week dose: sets per drill per session (Mon = A, Tue = B main, Sat = C)
+  var TA_DOSE = {
+    1: { "1": { ta_pogo: 1, ta_sqj: 1 }, "2": { ta_pogo: 1, ta_sqj: 2, ta_linhop: 1, ta_lathop: 1 }, "6": { ta_linhop: 1, ta_lathop: 1 } },
+    2: { "1": { ta_sbj: 1, ta_slsbj: 1, ta_bj: 1, ta_tsbj: 1 }, "2": { ta_sbj: 2, ta_slsbj: 2, ta_bj: 2, ta_tsbj: 2 }, "6": { ta_sbj: 2, ta_slsbj: 2, ta_bj: 2, ta_tsbj: 2 } },
+    3: { "1": { ta_kd: 1, ta_kdtt: 1, ta_lkdtt: 1 }, "2": { ta_fttt: 1, ta_kd: 2, ta_kdtt: 2, ta_lkdtt: 2 }, "6": { ta_fttt: 1, ta_lkdtt: 1 } },
+    4: { "1": { ta_tri: 1, ta_31: 1, ta_drops: 1 }, "2": { ta_tri: 2, ta_31: 2, ta_drops: 2 }, "6": { ta_tri: 2, ta_31: 2, ta_drops: 1 } }
+  };
+  var TA_PHASE_DRILLS = { 1: ["ta_pogo", "ta_sqj", "ta_linhop", "ta_lathop"], 2: ["ta_sbj", "ta_slsbj", "ta_bj", "ta_tsbj"], 3: ["ta_fttt", "ta_kd", "ta_kdtt", "ta_lkdtt"], 4: ["ta_tri", "ta_31", "ta_drops"] };
+
+  function taPhase(week) {
+    var n = Number(week) || 1;
+    return Math.floor(((n - 1) % 8) / 2) + 1;
+  }
+  function taLap(week) { return Number(week) <= 8 ? 1 : 2; }
+  function taDays(week) {
+    var mode = weekMode(week);
+    if (mode === "deload") return ["2", "6"];
+    if (mode === "taper") return ["1", "6"];
+    return ["1", "2", "6"];
+  }
+  function taOnDay(week, day) { return taDays(week).indexOf(String(day)) >= 0; }
+  function taLessonUrl(lessonId) { return TA_LESSON_BASE + lessonId; }
+
+  function taDoseFor(week, day) {
+    var ph = taPhase(week), mode = weekMode(week), out = {}, i, ids;
+    if (!taOnDay(week, day)) return null;
+    if (mode === "deload" || mode === "taper") {
+      ids = TA_PHASE_DRILLS[ph];
+      for (i = 0; i < ids.length; i++) out[ids[i]] = 1;
+      return out;
+    }
+    return TA_DOSE[ph][String(day)];
+  }
+
+  function taSessionExercises(week, day) {
+    var dose = taDoseFor(week, day);
+    if (!dose) return [];
+    var mode = weekMode(week);
+    var cut = mode === "deload" || mode === "taper";
+    var ropeSets = (!cut && String(day) === "2") ? 2 : 1;
+    var list = [], k, a, d, e;
+    var act = { ta_hf_seated: 1, ta_hf_kneel: 2, ta_hiprot: 2, ta_rope: ropeSets };
+    for (k in TA_ACTIVATION) {
+      a = TA_ACTIVATION[k];
+      e = ex(k, a[0], act[k], a[1], "15–30 seconds", "", a[3], "Team Ascension pre-workout activation — before every TA session. Prepare, don't fatigue.");
+      e.noLoad = true;
+      e.kind = "prehab";
+      e.ta = true;
+      e.taActivation = true;
+      e.demo = taLessonUrl(a[2]);
+      list.push(e);
+    }
+    var lap2 = taLap(week) === 2;
+    var ph = taPhase(week);
+    var lapCue = "";
+    if (lap2) {
+      if (ph === 1) lapCue = " Lap 2: shorter ground contacts, stiffer ankles, higher squat-jump intent.";
+      else if (ph === 2) lapCue = " Lap 2: box one notch higher only if every landing is quiet and stuck.";
+      else lapCue = " Lap 2: max speed with full rest.";
+    }
+    for (k in dose) {
+      d = TA_DRILLS[k];
+      e = plyo(k, d[0], dose[k], d[1], d[2], TA_REST, d[4] + " " + TA_INTENT + lapCue);
+      e.ta = true;
+      e.demo = taLessonUrl(d[3]);
+      e.progress = "Same sets all phase. Don't add sets: the week's jump contacts are already counted. Any knee, shin, ankle, or foot pain: stop and tell Dad.";
+      list.push(e);
+    }
+    return list;
+  }
+
+  function taIntroText(week, day) {
+    var ph = taPhase(week), info = TA_PHASES[ph], mode = weekMode(week);
+    var t = "Team Ascension " + info.name + " (lap " + taLap(week) + ", week " + (((Number(week) - 1) % 2) + 1) + " of 2). " + info.goal + " Start with the 4 activation drills (15–30 seconds between drills), then the phase drills with " + TA_REST + ". " + TA_INTENT;
+    if (mode === "deload") t += " Deload week: 1 set of each drill, Tuesday and Saturday only.";
+    if (mode === "taper") t += " Taper week: 1 set of each drill, Monday and Saturday only. No Tuesday jumps, so Wednesday's retest is fresh.";
+    if (weekIsTest(week)) t += " Test week: do jump and sprint tests first, on fresh legs, before any TA drills that day.";
+    if (String(day) === "6") t += " " + TA_AAU;
+    t += " Tap \u201cWatch demo\u201d on any drill to see it. " + TA_PASSWORD_NOTE;
+    return t;
+  }
+
   function phaseRIR(phase) {
     return 2;
   }
@@ -1407,7 +1541,7 @@
 
   function gymLower(phase, deload, taper) {
     var rir = phaseRIR(phase);
-    var primer = plyo("primer", "Box jump or countermovement jump (primer)", 2, "3", 3, "Full reset, at least 60 seconds", "Two easy sets of 3 only — a gym primer, not a plyo session. No Calmach. Stick quiet landings. " + STOP_LOUD);
+    // The 2 × 3 "primer" was replaced by the Team Ascension session; old logs keep the id.
     var trap, rdl, split, press, curl, calf, add;
     if (taper) {
       trap = lift("trapbar", "Trap-bar deadlift or back / front squat", 3, "3", "2–3+ minutes", "Fast but comfortable, not a max", "Crisp, easy bar speed. This is taper work, not a heavy day. Same lift as the rest of the block.", "lower", "barbell", rir);
@@ -1418,7 +1552,7 @@
       rdl.progress = "Do not add load this week.";
       split.progress = "Do not add load this week.";
       calf.progress = "Do not add load this week.";
-      return [primer, trap, rdl, split, calf];
+      return [trap, rdl, split, calf];
     }
     if (phase === "hypertrophy") {
       trap = lift("trapbar", "Trap-bar deadlift or back / front squat", deload ? 3 : 5, "6–8", "2–3+ minutes", "3-0-1-0", "This is the main lower lift. Pick one (trap-bar, back squat, or front squat) and keep it for the block. Neutral spine, complete every stand. Leave about 2 reps in reserve. No failure and no max.", "lower", "barbell", rir);
@@ -1447,7 +1581,7 @@
     }
     press.increment = 5;
     curl.increment = 5;
-    return [primer, trap, rdl, split, press, curl, calf, add];
+    return [trap, rdl, split, press, curl, calf, add];
   }
 
   function gymUpper(phase, deload, taper) {
@@ -1524,15 +1658,17 @@
     var exercises, jumps, agility, conditioning, title, focus, handles, core;
 
     if (day === "1") {
-      title = "Gym lower body";
-      focus = "A full lower-body gym day, about 60–75 minutes: seven lifts plus a brief 2 × 3 jump primer. No Calmach and no mixed plyo volume. Leave reps in reserve; do not take the main lift to failure.";
-      return { title: title, focus: focus, kind: "train", location: "gym", exercises: gymLower(phase, deload, taper) };
+      var taMon = taSessionExercises(week, "1");
+      title = taMon.length ? "Team Ascension + gym lower" : "Gym lower body";
+      focus = (taMon.length ? "Any time of day. Team Ascension session A first (activation + a light phase dose, ~15 minutes) — this replaces the old 2 × 3 primer. Then a full lower-body gym day, about 60–75 minutes. " : "No Team Ascension today (deload week). A full lower-body gym day, about 60–75 minutes. ") + "No Calmach. Leave reps in reserve; do not take the main lift to failure.";
+      return { title: title, focus: focus, kind: "train", location: "gym", exercises: taMon.concat(gymLower(phase, deload, taper)), ta: taMon.length > 0 };
     }
 
     if (day === "2") {
-      title = "Gym upper body + shooting";
-      focus = "A full upper-body gym day, about 60–75 minutes (eight lifts), then Apex shooting (Gym/Home court — use whichever court you have). Leave reps in reserve on the main press and pull.";
-      return { title: title, focus: focus, kind: "train", location: "gym", exercises: gymUpper(phase, deload, taper), shooting: { intro: shootingIntro(phase, "2"), spots: spots(phase, "2"), place: "court" } };
+      var taTue = taSessionExercises(week, "2");
+      title = taTue.length ? "Team Ascension + gym upper + shooting" : "Gym upper body + shooting";
+      focus = (taTue.length ? "Team Ascension session B first — the main TA dose of the week (~15–20 minutes). " : (taper ? "No Team Ascension today (taper: keeps Wednesday's retest fresh). " : "")) + "Then a full upper-body gym day, about 60–75 minutes (eight lifts), then Apex shooting (Gym/Home court — use whichever court you have). Leave reps in reserve on the main press and pull.";
+      return { title: title, focus: focus, kind: "train", location: "gym", exercises: taTue.concat(gymUpper(phase, deload, taper)), ta: taTue.length > 0, shooting: { intro: shootingIntro(phase, "2"), spots: spots(phase, "2"), place: "court" } };
     }
 
     if (day === "3") {
@@ -1558,12 +1694,16 @@
       } else if (p2) {
         exercises = [
           sprintEx("sprint", "Short sprints", deload ? 7 : 14, "10–20 yards", "At least 90 seconds", deload ? "Deload volume. Rest at least 90 seconds." : "The week’s speed in one session (14 today). Rest at least 90 seconds. Stop if speed drops."),
-          sprintEx("cod", "Change-of-direction reps", deload ? 2 : 4, "1 short shuttle or 5-10-5", "At least 90 seconds", deload ? "Sharp cuts, then a full rest. Deload volume." : "4 quality COD reps. Sharp cuts, then a full rest of at least 90 seconds.")
+          (taPhase(week) === 4 && !deload)
+            ? sprintEx("cod", "Change-of-direction reps", 2, "1 short shuttle or 5-10-5", "At least 90 seconds", "2 quality COD reps this week (halved — Team Ascension Phase 4 already covers braking). Sharp cuts, then a full rest of at least 90 seconds.")
+            : sprintEx("cod", "Change-of-direction reps", deload ? 2 : 4, "1 short shuttle or 5-10-5", "At least 90 seconds", deload ? "Sharp cuts, then a full rest. Deload volume." : "4 quality COD reps. Sharp cuts, then a full rest of at least 90 seconds.")
         ];
       } else {
         exercises = [
           sprintEx("sprint", "Short sprints", 16, "10–20 yards", "At least 90 seconds", "The week’s speed in one session: up to 10–16 × 10–20 yards (16 today). Rest at least 90 seconds. Stop if speed drops."),
-          sprintEx("cod", "Change-of-direction reps", 6, "1 short shuttle or 5-10-5", "At least 90 seconds", "4–6 quality COD reps (6 today). Sharp cuts, then a full rest of at least 90 seconds.")
+          (taPhase(week) === 4)
+            ? sprintEx("cod", "Change-of-direction reps", 3, "1 short shuttle or 5-10-5", "At least 90 seconds", "3 quality COD reps this week (halved — Team Ascension Phase 4 already covers braking). Sharp cuts, then a full rest of at least 90 seconds.")
+            : sprintEx("cod", "Change-of-direction reps", 6, "1 short shuttle or 5-10-5", "At least 90 seconds", "4–6 quality COD reps (6 today). Sharp cuts, then a full rest of at least 90 seconds.")
         ];
       }
       if (phase === "power") exercises = exercises.concat(courtCondExercises(week));
@@ -1575,13 +1715,13 @@
       title = "Home Calmach jumps + handles";
       focus = "The hard home jump day on the Calmach. Start barefoot with the foot / ankle block (~10 minutes), then shoes on for Blake’s full resisted jump routine, then ball handling. No gym lifts today. " + HOME_PAIN_NOTE;
       handles = homeHandles(phase, deload, taper);
-      exercises = footBlockExercises(week).concat(thursdayCalmach(phase, deload, taper)).concat([handles]);
+      exercises = footBlockExercises(week).concat(thursdayCalmach(phase, deload, taper, week)).concat([handles]);
       return { title: title, focus: focus, kind: "train", location: "home", exercises: exercises, footWarmup: true };
     }
 
     if (day === "5") {
-      title = "Home Calmach (light) + core + shooting";
-      focus = "A lighter Calmach day so Monday gym lower stays fresh, but still dense: pogos 3 × 10, vertical power 3 × 6, and step-ups 3 × 8 each. Start barefoot with the foot / ankle block, then shoes on, then core. Apex shooting is labeled Gym/Home court — use whichever court you have. " + HOME_PAIN_NOTE;
+      title = "Foot / ankle + core + shooting (no jumps)";
+      focus = "No jumps today — it's the day after Calmach. Start barefoot with the foot / ankle block, then core, then Apex shooting (Gym/Home court — use whichever court you have). The old Friday Calmach jumps were replaced by Team Ascension. Plunge and boots are fine tonight. " + HOME_PAIN_NOTE;
       if (p1) {
         core = [
           ex("plank", "Front plank", deload ? 2 : 3, "30 seconds", "45 seconds", "Steady brace", "Ribs down, glutes on. Come down if the hips pike or sag.", "Add 5 seconds only if all sets stay clean."),
@@ -1602,7 +1742,7 @@
         ];
       }
       core.forEach(function (c) { c.noLoad = true; });
-      exercises = footBlockExercises(week).concat(fridayCalmach(deload, taper)).concat(core);
+      exercises = footBlockExercises(week).concat(core);
       return {
         title: title,
         focus: focus,
@@ -1615,10 +1755,13 @@
     }
 
     if (day === "6") {
-      exercises = footBlockExercises(week).concat(courtCondExercises(week));
+      var taSat = taSessionExercises(week, "6");
+      exercises = taSat.concat(footBlockExercises(week)).concat(courtCondExercises(week));
       return {
-        title: Number(week) >= 12 ? "Foot / ankle + guard conditioning" : "Foot / ankle + light guard conditioning",
-        focus: "Start barefoot with the foot / ankle block (~10 minutes). Then shoes on for basketball conditioning on the court. " + condNoteFor(week) + " Easy shooting is fine afterward if the legs still feel fresh. There are no 200s and no short-rest repeat sprints.",
+        title: "Team Ascension + foot / ankle + " + (Number(week) >= 12 ? "guard conditioning" : "light guard conditioning"),
+        focus: "Team Ascension session C first (shoes on), then the barefoot foot / ankle block (~10 minutes), then shoes back on for basketball conditioning on the court. " + TA_AAU + " " + condNoteFor(week) + " Easy shooting is fine afterward if the legs still feel fresh. There are no 200s and no short-rest repeat sprints.",
+        ta: true,
+        taFirst: true,
         kind: "train",
         location: "court",
         exercises: exercises,
@@ -1645,6 +1788,7 @@
     ["Arm circles and bodyweight squats", "10 circles each way, then 10 squats."],
     ["Inchworms and build-ups", "5 inchworms, then 2 or 3 easy jumps or closeouts."]
   ];
+  var WARMUP_TA = [["Light jog", "2 minutes, easy. (Jump rope is in the Team Ascension activation today.)"]].concat(WARMUP.slice(1));
   var COOLDOWN = [
     ["Easy walk", "2 minutes."],
     ["Hip flexor or couch stretch", "30 seconds each side."],
@@ -2160,10 +2304,10 @@
 
   function escapeHtml(s) {
     return String(s)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
+      .replace(/&/g, "&")
+      .replace(/</g, "<")
+      .replace(/>/g, ">")
+      .replace(/"/g, """);
   }
 
   function parseNum(v) {
@@ -2587,6 +2731,10 @@
     html += "</p>";
     html += '<p class="cue">' + escapeHtml(exer.cue) + "</p>";
     if (exer.progress) html += '<p class="progress-rule"><strong>Progress:</strong> ' + escapeHtml(exer.progress) + "</p>";
+    if (exer.demo && /^https:\/\/stan\.store\//.test(exer.demo)) {
+      html += '<p class="demo-row"><a class="demo-link" href="' + escapeHtml(exer.demo) + '" target="_blank" rel="noopener noreferrer">Watch demo ↗</a></p>';
+      html += '<p class="demo-note">' + escapeHtml(TA_PASSWORD_NOTE) + "</p>";
+    }
     var sug = (!exer.noLoad) ? suggestedFor(exer, state.week) : null;
     var sugTxt = (sug != null) ? formatLb(sug) : "";
     html += '<div class="sets">';
@@ -2869,7 +3017,7 @@
     if (prog.total) html += progressBarHtml(prog.done, prog.total, "Sets done");
     html += "</div></div>";
     html += '<div class="card"><div class="card-head"><h2>This week\'s plyo contacts</h2>' + categoryTag("plyo") + "</div>";
-    html += '<p class="meta"><strong>' + contacts.total + " jump contacts</strong> this week (Calmach + Monday primer + barefoot pogos). " + escapeHtml(contacts.note) + "</p>";
+    html += '<p class="meta"><strong>' + contacts.total + " jump contacts</strong> this week. " + escapeHtml(contacts.note) + "</p>";
     html += '<p class="cue">Shoes on for Calmach and all lifting. Stop if landings get loud.</p></div>';
     if (plan.retest) {
       html += '<div class="card"><h2>Week 16 retest</h2><p>After the warm-up and a few crisp jumps, retest standing and approach jump reach, bodyweight, and a timed 10–20 yard sprint. Log the numbers in the Progress tab. This is a test day, not a max-lift day.</p></div>';
@@ -3036,19 +3184,19 @@
     var html = '<div class="card"><h2>The week</h2>';
     html += '<p class="cue">Five training days and two recovery days, every week, for 16 weeks in three phases. Calmach is a Home session using Blake’s resisted jump routine; resistance training is at the Gym. Gym days are fuller hypertrophy-style sessions (about 6–8 lifts, 60–75 minutes). Weeks 1–2 are calibration weeks for working weights. Weeks 6 and 11 are deloads (fewer sets, 10–15% lighter suggested loads, and about half the Calmach volume and sprints). Week 16 is a taper and retest on Day 3. Tests (jump, reach, sprint, and 17s) are at Weeks 4, 8, 12, and 16, plus a Week 1 baseline. High school season ends in February; set a Monday start date on the Plan page if you want calendar dates on each week.</p>';
     html += "<table class=\"week-table\"><thead><tr><th>Day</th><th>Where</th><th>Session</th></tr></thead><tbody>";
-    html += "<tr><td>Day 1 · Mon</td><td>Gym</td><td>Lower-body strength plus a brief 2 × 3 box jump or CMJ primer (no Calmach)</td></tr>";
-    html += "<tr><td>Day 2 · Tue</td><td>Gym / court</td><td>Loaded press and hard pull, then Apex shooting (Gym/Home court)</td></tr>";
+    html += "<tr><td>Day 1 · Mon</td><td>Gym</td><td>Team Ascension session A (replaces the old primer), then lower-body strength (no Calmach)</td></tr>";
+    html += "<tr><td>Day 2 · Tue</td><td>Gym / court</td><td>Team Ascension session B (the main TA dose), then loaded press and hard pull, then Apex shooting (Gym/Home court)</td></tr>";
     html += "<tr><td>Day 3 · Wed</td><td>Gym/Home court</td><td>The week’s speed work on fresh legs, then an optional ~30 min upper / full-body gym add-on. Week 16 retest is here.</td></tr>";
     html += "<tr><td>Day 4 · Thu</td><td>Home</td><td>Barefoot foot / ankle warm-up, then shoes on for Blake’s full Calmach routine, then ball handling</td></tr>";
-    html += "<tr><td>Day 5 · Fri</td><td>Home / court</td><td>Barefoot foot / ankle warm-up, then Friday Calmach (pogos 3 × 10, power 3 × 6, step-ups 3 × 8 each), then core and Apex shooting (Gym/Home court)</td></tr>";
-    html += "<tr><td>Day 6 · Sat</td><td>Gym/Home court</td><td>Foot / ankle block, then light guard conditioning (weeks 1–11) or a fuller pre-season block (weeks 12–16). Skip conditioning if there is an AAU game or practice today or tomorrow.</td></tr>";
+    html += "<tr><td>Day 5 · Fri</td><td>Home / court</td><td>No jumps (day after Calmach). Barefoot foot / ankle block, core, and Apex shooting (Gym/Home court)</td></tr>";
+    html += "<tr><td>Day 6 · Sat</td><td>Gym/Home court</td><td>Team Ascension session C, then the foot / ankle block, then light guard conditioning (weeks 1–11) or a fuller pre-season block (weeks 12–16). AAU game today or tomorrow: TA activation only, and skip conditioning.</td></tr>";
     html += "<tr><td>Day 7 · Sun</td><td>Rest</td><td>Full rest</td></tr>";
     html += "</tbody></table>";
-    html += '<p class="cue" style="margin-top:10px">Why the week is built this way: a hard jump day never sits the day before gym lower. Monday legs and Thursday hard jumps are about 72 hours apart. Friday is a light jump day, then Saturday easy and Sunday rest, so the legs have a full weekend before Monday’s lifts. Wednesday speed is 48 hours after Monday legs and comes before Thursday jumps, so the sprints stay fresh. Two recovery days are Saturday (easy only) and Sunday (full rest).</p>';
+    html += '<p class="cue" style="margin-top:10px">Why the week is built this way: Thursday Calmach is the hardest jump day, with 48 hours on both sides (Tuesday TA and Saturday TA). Friday has no jumps. Saturday to Monday is 48 hours, and Sunday is full rest. The program starts after the high school season, so every session can be done any time of day. Wednesday speed is 48 hours after Monday legs and comes before Thursday jumps, so the sprints stay fresh. Two recovery days are Saturday (easy only) and Sunday (full rest).</p>';
     html += "<table class=\"week-table\" style=\"margin-top:12px\"><thead><tr><th>Phase</th><th>Weeks</th><th>Focus</th></tr></thead><tbody>";
-    html += '<tr class="p2"><td>1 Hypertrophy</td><td>1–6</td><td>Full gym days, main lifts 4 × 6–8, accessories in the 8–15 range, Full Thursday Calmach from week 1, denser Friday jumps, 7–9 lift exercises, and about 530–550 jump contacts. Saturday light guard conditioning only. Weeks 1–2 calibration. Week 6 deload. Target 1–2 RIR on the last set.</td></tr>';
-    html += '<tr class="p3"><td>2 Strength</td><td>7–11</td><td>Main lifts 4 × 4–6 heavier, still not a max. Accessories stay in a muscle-gain range. Thursday stays on the full Calmach routine with full rest. About 530–550 jump contacts. Saturday light guard conditioning only. Week 11 deload.</td></tr>';
-    html += '<tr class="p4"><td>3 Power</td><td>12–16</td><td>Main lifts 3 × 3–5 fast, Thursday Calmach at full volume with a 4th power-jump set allowed, about 530–550 jump contacts. Pre-season guard conditioning twice a week (Wed after speed + Sat). Week 16 taper and Day 3 retest.</td></tr>';
+    html += '<tr class="p2"><td>1 Hypertrophy</td><td>1–6</td><td>Full gym days, main lifts 4 × 6–8, accessories in the 8–15 range, Full Thursday Calmach from week 1, Team Ascension lap 1 (Phases 1–3), 7–9 lift exercises, and about 520–545 jump contacts. Saturday light guard conditioning only. Weeks 1–2 calibration. Week 6 deload. Target 1–2 RIR on the last set.</td></tr>';
+    html += '<tr class="p3"><td>2 Strength</td><td>7–11</td><td>Main lifts 4 × 4–6 heavier, still not a max. Accessories stay in a muscle-gain range. Thursday stays on the Calmach routine with full rest. Team Ascension Phase 4, then lap 2 Phases 1–2. About 520–545 jump contacts. Saturday light guard conditioning only. Week 11 deload.</td></tr>';
+    html += '<tr class="p4"><td>3 Power</td><td>12–16</td><td>Main lifts 3 × 3–5 fast, Thursday Calmach with a 4th power-jump set allowed, Team Ascension lap 2 Phases 2–4 (game speed and accel/decel right before the season), about 530 jump contacts. Pre-season guard conditioning twice a week (Wed after speed + Sat). Week 16 taper and Day 3 retest.</td></tr>';
     html += "</tbody></table></div>";
 
     html += '<div class="card"><h2>How to add load</h2><p>' + escapeHtml(SUGGEST_NOTE) + "</p>";
@@ -3067,13 +3215,24 @@
     html += "</ul></div>";
 
     html += '<div class="card"><h2>Warm-up</h2>' + renderSteps(WARMUP);
-    html += '<p class="cue">Gym and Wednesday speed days use this warm-up. Thursday, Friday, and Saturday start with the barefoot foot / ankle block instead (~10 minutes): toe yoga 2 × 10, short-foot holds 3 × 20s, single-leg balance 3 × 30s each (eyes closed in weeks 7+), slow single-leg calf raises 3 × 12 each, and barefoot pogo hops 2 × 20 on a mat or grass only. ' + escapeHtml(FOOT_NOTE) + "</p></div>";
+    html += '<p class="cue">Gym and Wednesday speed days use this warm-up. Thursday and Friday start with the barefoot foot / ankle block instead, and Saturday does it right after the Team Ascension session (~10 minutes): toe yoga 2 × 10, short-foot holds 3 × 20s, single-leg balance 3 × 30s each (eyes closed in weeks 7+), and slow single-leg calf raises 3 × 12 each. Barefoot pogo hops were removed when Team Ascension was added. On Team Ascension days the warm-up opens with a light jog, because jump rope is in the TA activation. ' + escapeHtml(FOOT_NOTE) + "</p></div>";
     html += '<div class="card"><h2>Cooldown (every training day)</h2>' + renderSteps(COOLDOWN) + '<p class="cue">On recovery days, use these stretches with 45–60 second holds.</p></div>';
 
     html += '<div class="card"><h2>Blake’s Calmach routine</h2>';
-    html += "<p>Thursday is the hard home jump day, and Blake runs his full routine from week 1 in every phase: Resisted Pogo Vertical Jumps 3 × 10 (minimal ground time); Resisted Vertical Power Jumps 3 × 10 (jump as high as you can each time; a 4th set is allowed in weeks 12–15 if landings stay quiet); Resisted Single-Leg Jumps 2 × 10 each (power off one foot for layups and dunks); Resisted Lunge Jumps 3 × 10 (5 each leg); Resisted Knee Hop Jumps 10 total; Resisted High Knees countdown 10s down to 1s with short rest; and Resisted Step-Ups on a chair 3 × 10 each leg.</p>";
-    html += "<p>Friday: pogos 3 × 10, vertical power jumps 3 × 6, and step-ups 3 × 8 each. Weeks 6, 11, and 16 are about 60% volume. " + escapeHtml(HOME_PAIN_NOTE) + "</p>";
+    html += "<p>Thursday is the hard home jump day, and Blake runs his full routine from week 1 in every phase: Resisted Pogo Vertical Jumps 3 × 10 (minimal ground time); Resisted Vertical Power Jumps 3 × 10 (jump as high as you can each time; a 4th set is allowed in weeks 12–15 if landings stay quiet); Resisted Single-Leg Jumps 2 × 10 each (power off one foot for layups and dunks); Resisted Lunge Jumps 3 × 10 (5 each leg); Resisted Knee Hop Jumps 10 total; Resisted High Knees countdown with short rest (10s down to 1s in Team Ascension Phase 2 weeks 3–4 and 11–12; 6s down to 1s in all other weeks to make room for Team Ascension); and Resisted Step-Ups on a chair 3 × 10 each leg.</p>";
+    html += "<p>Friday has no jumps now: the old Friday Calmach set was replaced by Team Ascension. Weeks 6, 11, and 16 are about 60% volume. " + escapeHtml(HOME_PAIN_NOTE) + "</p>";
     html += "<p>Raise Calmach tension only when landings stay quiet. " + escapeHtml(STOP_LOUD) + "</p></div>";
+
+    html += '<div class="card"><div class="card-head"><h2>Team Ascension (8-week course, run twice)</h2>' + categoryTag("ta") + "</div>";
+    html += "<p>Three TA sessions a week: Monday (A, before lower), Tuesday (B, the main dose, before upper), and Saturday (C, before the foot block and conditioning). Deload weeks 6 and 11 are Tuesday and Saturday at 1 set each. The week 16 taper is Monday and Saturday at 1 set each. Every session starts with the pre-workout activation: seated hip-flexor lifts 1 × 20s each side, kneeling hip-flexor lifts 2 × 20s each side, hip rotations 2 × 10 each side, and jump rope 30s (2 sets Tuesday, 1 set Monday and Saturday).</p>";
+    html += '<table class="week-table"><thead><tr><th>Weeks</th><th>Phase</th><th>Drills</th></tr></thead><tbody>';
+    html += "<tr><td>1–2 · 9–10</td><td>1 · Ground Force</td><td>Pogo jumps, squat jumps, linear and lateral line hops (20s sets)</td></tr>";
+    html += "<tr><td>3–4 · 11–12</td><td>2 · Power</td><td>Seated, single-leg seated, box, and triple-stick box jumps (6 reps)</td></tr>";
+    html += "<tr><td>5–6 · 13–14</td><td>3 · Game Speed</td><td>Split-leg fast-twitch toe-taps, knee drives, knee-drive toe taps, lateral knee-drive toe taps (20s)</td></tr>";
+    html += "<tr><td>7–8 · 15–16</td><td>4 · Accel/Decel</td><td>Split-leg triple, 3:1, and accel/decel drops over a bench or box (20s)</td></tr>";
+    html += "</tbody></table>";
+    html += "<p>Rest 2–3 minutes between sets. Max intent every rep, quality over quantity. The sets are lower than the course's book dose so the week stays around 520–545 jump contacts, never above 550. In TA Phase 4 weeks, Wednesday change-of-direction reps are halved. " + escapeHtml(TA_AAU) + "</p>";
+    html += "<p>Each drill has a “Watch demo ↗” button that opens the Stan lesson. " + escapeHtml(TA_PASSWORD_NOTE) + " " + escapeHtml(HOME_PAIN_NOTE) + "</p></div>";
 
     html += '<div class="card"><h2>Guard conditioning</h2>';
     html += "<p>This stays light in weeks 1–11 because of AAU: one short session on Saturday only (~10–12 minutes), 3–4 rounds of full-court defensive zig-zag slides and sprint-backpedal-slide (baseline → FT → half → far FT → baseline), plus one timed 17s (sideline-to-sideline × 17, target under 60 seconds, rest 2:00). " + escapeHtml(AAU_SKIP) + "</p>";
@@ -3212,16 +3371,21 @@
     plan = plan || currentPlan();
     var pages = [];
     pages.push({ type: "intro", title: plan.title || "Session" });
-    if (plan.kind === "train" && !plan.footWarmup) pages.push({ type: "steps", title: "Warm-up", steps: WARMUP });
-    if (plan.footWarmup) pages.push({ type: "footblock", title: "Foot / ankle warm-up" });
+    if (plan.kind === "train" && !plan.footWarmup) pages.push({ type: "steps", title: "Warm-up", steps: plan.ta ? WARMUP_TA : WARMUP });
+    if (plan.footWarmup && !plan.taFirst) pages.push({ type: "footblock", title: "Foot / ankle warm-up" });
+    if (plan.ta) pages.push({ type: "note", title: "Team Ascension · " + TA_PHASES[taPhase(state.week)].short, text: taIntroText(state.week, state.day) });
     if (plan.retest) pages.push({ type: "note", title: "Week 16 retest", text: "After the warm-up, retest standing and approach jump reach, bodyweight, a timed 10–20 yard sprint, and a 17s (sideline-to-sideline × 17, target under 60 seconds). Log the numbers in Tests. This is a test day, not a max-lift day." });
     if (plan.seventeenTest && !plan.retest) pages.push({ type: "note", title: "17s test", text: "After a full rest, run a timed 17s (sideline-to-sideline × 17, target under 60 seconds) and log it in Tests. This is in addition to your jump and sprint tests. " + AAU_SKIP });
     if (plan.recovery) pages.push({ type: "note", title: plan.kind === "rest" ? "Rest day" : "Recovery", text: plan.recovery });
-    var i, exer, shownOpt = false, shownCond = false;
+    var i, exer, shownOpt = false, shownCond = false, shownFoot = false;
     var list = plan.exercises || [];
     for (i = 0; i < list.length; i++) {
       exer = list[i];
       if (exer.footBlock) continue;
+      if (plan.taFirst && plan.footWarmup && !shownFoot && !exer.ta) {
+        pages.push({ type: "footblock", title: "Foot / ankle warm-up" });
+        shownFoot = true;
+      }
       if (exer.bball && !shownCond) {
         pages.push({ type: "note", title: "Guard conditioning", text: plan.condNote || ("Basketball conditioning. " + AAU_SKIP + " Keep this off Monday and Tuesday evenings.") });
         shownCond = true;
